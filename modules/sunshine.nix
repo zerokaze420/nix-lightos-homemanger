@@ -1,0 +1,34 @@
+{ pkgs, ... }:
+{
+  home.packages = [ pkgs.sunshine ];
+
+  # 以 systemd 用户服务运行 Sunshine，随图形会话自动启动。
+  # 首次启动后访问 https://localhost:47990 进行配对与配置
+  # （配置写入 ~/.config/sunshine/，由 Sunshine 自身管理，未在此锁定）。
+  systemd.user.services.sunshine = {
+    Unit = {
+      Description = "Sunshine self-hosted game stream host";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.sunshine}/bin/sunshine";
+      Restart = "on-failure";
+      RestartSec = "5s";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  # ── 重要：非 NixOS（CachyOS/Arch）需要的系统级权限，home-manager 无法配置 ──
+  #
+  # 1) 虚拟手柄/键鼠 (uinput) —— 创建 udev 规则（需 root）：
+  #      /etc/udev/rules.d/85-sunshine.rules
+  #      KERNEL=="uinput", SUBSYSTEM=="misc", MODE="0660", GROUP="input", OPTIONS+="static_node=uinput"
+  #    并将用户加入 input 组：  sudo usermod -aG input tux
+  #
+  # 2) Wayland 下的 KMS 屏幕捕获能力（需 root，对 nix store 二进制赋能）：
+  #      sudo setcap cap_sys_admin+p "$(readlink -f "$(command -v sunshine)")"
+  #    若 nix store 不可写导致 setcap 失败，可改用 X11/PipeWire 捕获后端。
+  #
+  # 3) 防火墙放行端口：TCP 47984/47989/47990/48010，UDP 47998-48000。
+}
