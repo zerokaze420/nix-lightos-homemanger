@@ -188,17 +188,26 @@ ls -l /dev/uinput
 - `wayvnc.service`：Wayland VNC 后端，监听 `0.0.0.0:5900`
 - `novnc.service`：浏览器访问入口，监听 `0.0.0.0:6080`
 
-在同一局域网内访问：
+在同一局域网内用浏览器访问：
 
 ```text
 http://<主机IP>:6080/vnc.html?host=<主机IP>&port=6080
 ```
 
-也可以用普通 VNC 客户端连接：
+`5900` 是 VNC 协议端口，不能用 `http://<主机IP>:5900` 打开。普通 VNC 客户端可连接：
 
 ```text
 <主机IP>:5900
 ```
+
+headless dwl 启动后会自动打开一个 `foot` 终端。dwl 默认 Mod 键是 `Alt`，常用键位：
+
+- `Alt+Shift+Enter`：打开 `foot`
+- `Alt+p`：打开 `wmenu-run`
+- `Alt+j/k`：切换窗口焦点
+- `Alt+Shift+c`：关闭当前窗口
+- `Alt+1..9`：切换 tag
+- `Alt+Shift+q`：退出 dwl
 
 服务状态和日志：
 

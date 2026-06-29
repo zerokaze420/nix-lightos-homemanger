@@ -10,7 +10,27 @@ let
     export WLR_LIBINPUT_NO_DEVICES="1"
     export WLR_RENDERER="pixman"
 
-    exec ${pkgs.dwl}/bin/dwl
+    ${pkgs.dwl}/bin/dwl &
+    dwl_pid=$!
+
+    cleanup() {
+      kill "$dwl_pid" 2>/dev/null || true
+    }
+    trap cleanup INT TERM EXIT
+
+    for attempt in $(seq 1 30); do
+      for socket in "$XDG_RUNTIME_DIR"/wayland-*; do
+        [ -S "$socket" ] || continue
+        export WAYLAND_DISPLAY="$(basename "$socket")"
+        ${pkgs.foot}/bin/foot &
+        wait "$dwl_pid"
+        exit $?
+      done
+      sleep 1
+    done
+
+    echo "dwl started, but no Wayland socket appeared under $XDG_RUNTIME_DIR" >&2
+    wait "$dwl_pid"
   '';
 
   startWayvnc = pkgs.writeShellScript "start-wayvnc" ''
@@ -48,6 +68,7 @@ in
 {
   home.packages = with pkgs; [
     dwl
+    foot
     novnc
     python3Packages.websockify
     wayvnc
