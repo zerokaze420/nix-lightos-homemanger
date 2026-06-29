@@ -39,7 +39,9 @@ fish 配置里也提供了快捷命令：
 ```fish
 hms        # home-manager switch --flake ~/code/nix-homemager#tux
 hmb        # home-manager build --flake ~/code/nix-homemager#tux
+hmr        # nix run github:nix-community/home-manager -- switch --flake ~/code/nix-homemager#tux
 hm-switch  # 同 hms
+hm-bootstrap # 同 hmr，用于首次没有 home-manager 命令时
 ```
 
 ## fish

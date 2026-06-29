@@ -12,6 +12,7 @@
       gd = "git diff";
       ff = "fastfetch";
       hm-switch = "home-manager switch --flake ~/code/nix-homemager#tux";
+      hm-bootstrap = "nix run github:nix-community/home-manager -- switch --flake ~/code/nix-homemager#tux";
     };
 
     shellAbbrs = {
@@ -19,6 +20,7 @@
       gcm = "git commit";
       gp = "git push";
       hms = "home-manager switch --flake ~/code/nix-homemager#tux";
+      hmr = "nix run github:nix-community/home-manager -- switch --flake ~/code/nix-homemager#tux";
       hmb = "home-manager build --flake ~/code/nix-homemager#tux";
       ns = "nix search nixpkgs";
     };
