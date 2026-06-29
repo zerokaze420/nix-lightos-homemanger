@@ -2,6 +2,7 @@
 {
   imports = [
     ./modules/dwl.nix
+    ./modules/fish.nix
     ./modules/sunshine.nix
   ];
 
