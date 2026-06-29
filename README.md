@@ -200,6 +200,12 @@ ls -l /dev/uinput
 
 用户级 noVNC 远程桌面使用的是 headless dwl，Sunshine 会看到 `HEADLESS-1`。这个输出适合 noVNC，但不能作为 Sunshine 游戏串流的编码源。要让 Sunshine 捕获真实 HDMI，需要启动真实 DRM/HDMI dwl 会话。
 
+仓库里提供了一键脚本：
+
+```sh
+./scripts/setup-sunshine-dwl-tty1.sh
+```
+
 下面脚本会：
 
 - 停用用户级 headless noVNC 远程桌面服务
