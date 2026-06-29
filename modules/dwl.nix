@@ -26,13 +26,20 @@ in
   '';
 
   # 从 TTY1 登录后自动启动 dwl（无显示管理器时使用）。
-  # 默认注释，避免与显示管理器冲突；按需启用：
-  #
-  # programs.bash.profileExtra = ''
-  #   if [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
-  #     exec dwl
-  #   fi
-  # '';
+  programs.bash = {
+    enable = true;
+    profileExtra = ''
+      if [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+        exec dwl
+      fi
+    '';
+  };
+
+  programs.fish.loginShellInit = ''
+    if test -z "$WAYLAND_DISPLAY"; and test (tty) = "/dev/tty1"
+      exec dwl
+    end
+  '';
 
   home.sessionVariables = {
     XDG_CURRENT_DESKTOP = "wlroots";

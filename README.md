@@ -83,6 +83,29 @@ sudo chsh -s "$(command -v fish)" "$USER"
 
 使用 SDDM/GDM/greetd 等显示管理器时，在会话列表里选择 `dwl`。非 NixOS 下设置默认会话属于系统级配置，需要在显示管理器侧完成。
 
+无显示管理器时，此配置会在 TTY1 登录后自动 `exec dwl`，fish 和 bash 登录 shell 都支持。若要开机后直接进入 dwl，还需要系统级自动登录 TTY1。非 NixOS 可创建：
+
+```text
+/etc/systemd/system/getty@tty1.service.d/autologin.conf
+```
+
+内容示例：
+
+```ini
+[Service]
+ExecStart=
+ExecStart=-/usr/bin/agetty --autologin tux --noclear %I $TERM
+```
+
+然后执行：
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl restart getty@tty1.service
+```
+
+注意：TTY 自动登录会绕过本机密码输入，只适合可信物理环境。
+
 ## Sunshine
 
 配置会安装 Sunshine，并创建 systemd 用户服务。首次启动后访问：
