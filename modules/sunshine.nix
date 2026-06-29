@@ -8,7 +8,11 @@ let
   ];
 in
 {
-  home.packages = [ pkgs.sunshine ];
+  home.packages = with pkgs; [
+    intel-media-driver
+    intel-vaapi-driver
+    sunshine
+  ];
 
   # 以 systemd 用户服务运行 Sunshine，随用户会话自动启动。
   # 首次启动后访问 https://localhost:47990 进行配对与配置
@@ -27,7 +31,7 @@ in
         "FONTCONFIG_FILE=${pkgs.fontconfig.out}/etc/fonts/fonts.conf"
         "GBM_BACKENDS_PATH=${pkgs.mesa}/lib/gbm"
         "LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri"
-        "LIBVA_DRIVERS_PATH=${pkgs.mesa}/lib/dri"
+        "LIBVA_DRIVERS_PATH=${pkgs.intel-media-driver}/lib/dri:${pkgs.intel-vaapi-driver}/lib/dri:${pkgs.mesa}/lib/dri"
         "WAYLAND_DISPLAY=wayland-0"
         "XDG_CURRENT_DESKTOP=wlroots"
       ];
