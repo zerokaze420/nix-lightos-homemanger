@@ -1,6 +1,6 @@
 # nix-homemager
 
-Standalone Home Manager 配置，当前包含 dwl、Sunshine 和 fish 配置。
+Standalone Home Manager 配置，当前包含 dwl、Sunshine、fish、starship 和 nixvim 配置。
 
 ## 使用前调整
 
@@ -59,6 +59,19 @@ sudo chsh -s "$(command -v fish)" "$USER"
 ```
 
 重新登录后生效。
+
+## starship
+
+此配置会启用 starship，并打开 fish 集成。Prompt 显示当前目录、Git 分支/状态、Nix shell 和耗时命令，保持单行输入，不额外插入空行。
+
+## nixvim
+
+此配置会启用 nixvim，并把 `nvim` 设置为默认编辑器，同时提供：
+
+- 基础编辑选项：行号、相对行号、系统剪贴板、持久 undo、2 空格缩进
+- 常用插件：Telescope、Treesitter、Lualine、Which-key、Gitsigns、Comment、Oil
+- LSP/补全：Nix、Lua、Shell、JSON、YAML
+- 常用快捷键：`<leader>ff` 查文件、`<leader>fg` 搜全文、`<leader>e` 打开 Oil、`gd` 跳定义、`K` 看 hover
 
 ## dwl
 
