@@ -93,7 +93,7 @@ sudo chsh -s "$(command -v fish)" "$USER"
 
 使用 SDDM/GDM/greetd 等显示管理器时，在会话列表里选择 `dwl`。非 NixOS 下设置默认会话属于系统级配置，需要在显示管理器侧完成。
 
-无显示管理器时，此配置会在 TTY1 登录后自动 `exec dwl`，fish 和 bash 登录 shell 都支持。若要开机后直接进入 dwl，还需要系统级自动登录 TTY1。非 NixOS 可创建：
+无显示管理器时，此配置会在 fish 登录 shell 的 TTY1 登录后自动 `exec dwl`。若要开机后直接进入 dwl，还需要系统级自动登录 TTY1，并确保用户登录 shell 是 fish。非 NixOS 可创建：
 
 ```text
 /etc/systemd/system/getty@tty1.service.d/autologin.conf

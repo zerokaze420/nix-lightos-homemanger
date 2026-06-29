@@ -26,15 +26,6 @@ in
   '';
 
   # 从 TTY1 登录后自动启动 dwl（无显示管理器时使用）。
-  programs.bash = {
-    enable = true;
-    profileExtra = ''
-      if [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
-        exec dwl
-      fi
-    '';
-  };
-
   programs.fish.loginShellInit = ''
     if test -z "$WAYLAND_DISPLAY"; and test (tty) = "/dev/tty1"
       exec dwl
