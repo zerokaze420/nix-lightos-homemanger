@@ -154,6 +154,8 @@ https://<主机IP>:47990
 
 此配置已为 `192.168.3.182:47990` 和 `lc03test.heiyu.space:47990` 添加 `csrf_allowed_origins`。如果换了主机 IP 或域名，需要同步更新 `modules/sunshine.nix`。
 
+非 NixOS 下 Sunshine 服务会显式设置 Mesa/VAAPI/GBM 驱动路径，避免 Nix 包默认查找 `/run/opengl-driver`。
+
 非 NixOS 上还需要手动完成系统级权限配置：
 
 ```sh

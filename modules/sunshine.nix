@@ -25,6 +25,9 @@ in
     Service = {
       Environment = [
         "FONTCONFIG_FILE=${pkgs.fontconfig.out}/etc/fonts/fonts.conf"
+        "GBM_BACKENDS_PATH=${pkgs.mesa}/lib/gbm"
+        "LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri"
+        "LIBVA_DRIVERS_PATH=${pkgs.mesa}/lib/dri"
         "WAYLAND_DISPLAY=wayland-0"
         "XDG_CURRENT_DESKTOP=wlroots"
       ];
