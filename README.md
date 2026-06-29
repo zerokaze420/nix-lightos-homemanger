@@ -146,11 +146,25 @@ sudo systemctl restart getty@tty1.service
 https://localhost:47990
 ```
 
+局域网访问时使用 HTTPS，并确认证书警告：
+
+```text
+https://<主机IP>:47990
+```
+
+此配置已为 `192.168.3.182:47990` 和 `lc03test.heiyu.space:47990` 添加 `csrf_allowed_origins`。如果换了主机 IP 或域名，需要同步更新 `modules/sunshine.nix`。
+
 非 NixOS 上还需要手动完成系统级权限配置：
 
 ```sh
 getent group input >/dev/null || sudo groupadd -r input
 sudo usermod -aG input "$USER"
+sudo usermod -aG video "$USER"
+render_gid="$(stat -c %g /dev/dri/renderD128 2>/dev/null || true)"
+if [ -n "$render_gid" ] && ! getent group "$render_gid" >/dev/null; then
+  sudo groupadd -g "$render_gid" render
+fi
+getent group render >/dev/null && sudo usermod -aG render "$USER"
 sudo setcap cap_sys_admin+p "$(readlink -f "$(command -v sunshine)")"
 ```
 

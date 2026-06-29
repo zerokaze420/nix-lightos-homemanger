@@ -1,4 +1,12 @@
 { pkgs, ... }:
+let
+  csrfAllowedOrigins = builtins.concatStringsSep "," [
+    "https://192.168.3.182:47990"
+    "http://192.168.3.182:47990"
+    "https://lc03test.heiyu.space:47990"
+    "http://lc03test.heiyu.space:47990"
+  ];
+in
 {
   home.packages = [ pkgs.sunshine ];
 
@@ -8,13 +16,19 @@
   systemd.user.services.sunshine = {
     Unit = {
       Description = "Sunshine self-hosted game stream host";
-      After = [ "graphical-session.target" ];
+      Wants = [ "dwl-headless.service" ];
+      After = [
+        "dwl-headless.service"
+        "graphical-session.target"
+      ];
     };
     Service = {
       Environment = [
         "FONTCONFIG_FILE=${pkgs.fontconfig.out}/etc/fonts/fonts.conf"
+        "WAYLAND_DISPLAY=wayland-0"
+        "XDG_CURRENT_DESKTOP=wlroots"
       ];
-      ExecStart = "${pkgs.sunshine}/bin/sunshine system_tray=disabled";
+      ExecStart = "${pkgs.sunshine}/bin/sunshine system_tray=disabled origin_web_ui_allowed=wan csrf_allowed_origins=${csrfAllowedOrigins}";
       Restart = "on-failure";
       RestartSec = "5s";
     };
@@ -28,9 +42,13 @@
   #      KERNEL=="uinput", SUBSYSTEM=="misc", MODE="0660", GROUP="input", OPTIONS+="static_node=uinput"
   #    并将用户加入 input 组：  sudo usermod -aG input tux
   #
-  # 2) Wayland 下的 KMS 屏幕捕获能力（需 root，对 nix store 二进制赋能）：
+  # 2) GPU/DRM 访问权限（需 root）：
+  #      sudo usermod -aG video,render tux
+  #    如果 /dev/dri/renderD128 的组只有数字没有名字，需先按该 GID 创建 render 组。
+  #
+  # 3) Wayland 下的 KMS 屏幕捕获能力（需 root，对 nix store 二进制赋能）：
   #      sudo setcap cap_sys_admin+p "$(readlink -f "$(command -v sunshine)")"
   #    若 nix store 不可写导致 setcap 失败，可改用 X11/PipeWire 捕获后端。
   #
-  # 3) 防火墙放行端口：TCP 47984/47989/47990/48010，UDP 47998-48000。
+  # 4) 防火墙放行端口：TCP 47984/47989/47990/48010，UDP 47998-48000。
 }
