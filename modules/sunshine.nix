@@ -11,7 +11,10 @@
       After = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "${pkgs.sunshine}/bin/sunshine";
+      Environment = [
+        "FONTCONFIG_FILE=${pkgs.fontconfig.out}/etc/fonts/fonts.conf"
+      ];
+      ExecStart = "${pkgs.sunshine}/bin/sunshine system_tray=disabled";
       Restart = "on-failure";
       RestartSec = "5s";
     };

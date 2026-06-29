@@ -6,6 +6,7 @@
     ./modules/nixvim.nix
     ./modules/starship.nix
     ./modules/sunshine.nix
+    ./modules/tools.nix
   ];
 
   home.username = "tux";

@@ -47,6 +47,7 @@ hm-switch  # 同 hms
 此配置会启用 Home Manager 的 fish 支持，并加入一些常用别名、缩写和函数：
 
 - `ll`、`la`、`gs`、`gd`
+- `ff` 运行 `fastfetch`
 - `gco`、`gcm`、`gp`
 - `mkcd <dir>` 创建目录并进入
 - 自动加入 `~/.local/bin` 和 `~/.nix-profile/bin` 到 fish PATH
@@ -62,7 +63,16 @@ sudo chsh -s "$(command -v fish)" "$USER"
 
 ## starship
 
-此配置会启用 starship，并打开 fish 集成。Prompt 显示当前目录、Git 分支/状态、Nix shell 和耗时命令，保持单行输入，不额外插入空行。
+此配置会启用 starship，并打开 fish 集成。Prompt 使用 Catppuccin Mocha 配色，显示当前目录、Git 分支/状态、Nix shell、耗时命令和右侧时间。
+
+## tools
+
+此配置会安装常用 CLI 工具：
+
+- `fastfetch`
+- `guix`
+
+注意：Home Manager 只能安装 Guix CLI。完整 Guix 还需要系统级 `guix-daemon`、构建用户和 systemd 服务，非 NixOS 下需按发行版方式另行配置。
 
 ## nixvim
 

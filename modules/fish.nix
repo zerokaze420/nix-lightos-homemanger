@@ -8,6 +8,7 @@
       la = "ls -lah";
       gs = "git status --short";
       gd = "git diff";
+      ff = "fastfetch";
       hm-switch = "home-manager switch --flake ~/code/nix-homemager#tux";
     };
 
