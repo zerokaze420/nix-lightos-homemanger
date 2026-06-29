@@ -144,6 +144,7 @@ https://localhost:47990
 非 NixOS 上还需要手动完成系统级权限配置：
 
 ```sh
+getent group input >/dev/null || sudo groupadd -r input
 sudo usermod -aG input "$USER"
 sudo setcap cap_sys_admin+p "$(readlink -f "$(command -v sunshine)")"
 ```
@@ -153,6 +154,24 @@ sudo setcap cap_sys_admin+p "$(readlink -f "$(command -v sunshine)")"
 ```udev
 KERNEL=="uinput", SUBSYSTEM=="misc", MODE="0660", GROUP="input", OPTIONS+="static_node=uinput"
 ```
+
+加载 uinput 并刷新 udev 规则：
+
+```sh
+sudo modprobe uinput
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
+重新登录后确认权限：
+
+```sh
+id
+getcap "$(readlink -f "$(command -v sunshine)")"
+ls -l /dev/uinput
+```
+
+`id` 输出里应包含 `input` 组，`/dev/uinput` 的组也应是 `input`。如果不想重新登录，可临时执行 `newgrp input`。
 
 防火墙需要放行 TCP `47984/47989/47990/48010` 和 UDP `47998-48000`。
 
