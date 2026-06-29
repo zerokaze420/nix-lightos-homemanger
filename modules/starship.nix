@@ -8,7 +8,7 @@
       add_newline = false;
       command_timeout = 1000;
 
-      format = "[╭─](overlay0)$directory$git_branch$git_status$package$c$cpp$rust$golang$nodejs$python$lua$java$php$ruby$zig$nix_shell$cmd_duration\n[╰─](overlay0)$character";
+      format = "[╭─](overlay0)$directory$git_branch$git_status$package$c$cpp$rust$golang$nodejs$python$lua$java$php$ruby$zig$custom.nix$custom.guix$nix_shell$cmd_duration\n[╰─](overlay0)$character";
       right_format = "$time";
       palette = "catppuccin_mocha";
 
@@ -139,6 +139,32 @@
         symbol = "zig:";
         style = "bold peach";
         format = "via [$symbol$version]($style) ";
+      };
+
+      custom.nix = {
+        command = "nix --version | awk '{print $3}'";
+        detect_extensions = [ "nix" ];
+        detect_files = [
+          "flake.nix"
+          "default.nix"
+          "shell.nix"
+          "home.nix"
+        ];
+        format = "via [$symbol$output]($style) ";
+        style = "bold sky";
+        symbol = "nix:";
+      };
+
+      custom.guix = {
+        command = "guix --version | head -n1 | awk '{print $4}'";
+        detect_files = [
+          "manifest.scm"
+          "channels.scm"
+          "guix.scm"
+        ];
+        format = "via [$symbol$output]($style) ";
+        style = "bold green";
+        symbol = "guix:";
       };
 
       cmd_duration = {

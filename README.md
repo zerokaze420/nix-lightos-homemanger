@@ -68,6 +68,11 @@ sudo chsh -s "$(command -v fish)" "$USER"
 
 此配置会启用 starship，并打开 fish 集成。Prompt 使用 Catppuccin Mocha 配色，显示当前目录、Git 分支/状态、Nix shell、耗时命令和右侧时间。
 
+语言识别包含常见项目语言，并额外通过自定义模块识别：
+
+- Nix：`*.nix`、`flake.nix`、`default.nix`、`shell.nix`、`home.nix`
+- Guix：`manifest.scm`、`channels.scm`、`guix.scm`
+
 ## tools
 
 此配置会安装常用 CLI 工具：
@@ -174,6 +179,36 @@ ls -l /dev/uinput
 `id` 输出里应包含 `input` 组，`/dev/uinput` 的组也应是 `input`。如果不想重新登录，可临时执行 `newgrp input`。
 
 防火墙需要放行 TCP `47984/47989/47990/48010` 和 UDP `47998-48000`。
+
+## remote desktop
+
+配置会安装并启用用户级远程桌面服务：
+
+- `wayvnc.service`：Wayland/dwl VNC 后端，监听 `0.0.0.0:5900`
+- `novnc.service`：浏览器访问入口，监听 `0.0.0.0:6080`
+
+在同一局域网内访问：
+
+```text
+http://<主机IP>:6080/vnc.html?host=<主机IP>&port=6080
+```
+
+也可以用普通 VNC 客户端连接：
+
+```text
+<主机IP>:5900
+```
+
+服务状态和日志：
+
+```sh
+systemctl --user status wayvnc.service
+systemctl --user status novnc.service
+journalctl --user -u wayvnc.service -f
+journalctl --user -u novnc.service -f
+```
+
+此配置是用户级服务，不写入 `/etc/systemd/system`。如果系统防火墙默认拦截入站连接，需要放行 TCP `5900` 和 `6080`。
 
 ## 常用维护命令
 

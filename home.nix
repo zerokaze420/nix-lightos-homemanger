@@ -5,6 +5,7 @@
     ./modules/fish.nix
     ./modules/mirrors.nix
     ./modules/nixvim.nix
+    ./modules/remote-desktop.nix
     ./modules/starship.nix
     ./modules/sunshine.nix
     ./modules/tools.nix
