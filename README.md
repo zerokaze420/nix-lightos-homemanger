@@ -196,6 +196,92 @@ ls -l /dev/uinput
 
 防火墙需要放行 TCP `47984/47989/47990/48010` 和 UDP `47998-48000`。
 
+### Sunshine 使用真实 HDMI/dwl
+
+用户级 noVNC 远程桌面使用的是 headless dwl，Sunshine 会看到 `HEADLESS-1`。这个输出适合 noVNC，但不能作为 Sunshine 游戏串流的编码源。要让 Sunshine 捕获真实 HDMI，需要启动真实 DRM/HDMI dwl 会话。
+
+下面脚本会：
+
+- 停用用户级 headless noVNC 远程桌面服务
+- 创建系统级 `dwl-tty1.service`
+- 使用 TTY1 直接启动真实 DRM dwl
+- 重启 Sunshine，让它重新绑定真实 Wayland 会话
+
+```sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+target_user="${1:-$USER}"
+uid="$(id -u "$target_user")"
+home_dir="$(getent passwd "$target_user" | cut -d: -f6)"
+dwl_bin="${home_dir}/.nix-profile/bin/dwl"
+
+if [ ! -x "$dwl_bin" ]; then
+  echo "dwl not found: $dwl_bin" >&2
+  echo "Run home-manager switch first." >&2
+  exit 1
+fi
+
+systemctl --user disable --now dwl-headless.service wayvnc.service novnc.service 2>/dev/null || true
+
+sudo loginctl enable-linger "$target_user"
+sudo install -d -m 0755 /etc/systemd/system
+
+sudo tee /etc/systemd/system/dwl-tty1.service >/dev/null <<EOF
+[Unit]
+Description=dwl on tty1 for Sunshine
+After=systemd-user-sessions.service
+Conflicts=getty@tty1.service
+
+[Service]
+User=${target_user}
+PAMName=login
+WorkingDirectory=${home_dir}
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+StandardInput=tty
+StandardOutput=journal+console
+StandardError=journal+console
+UtmpIdentifier=tty1
+UtmpMode=user
+Environment=XDG_RUNTIME_DIR=/run/user/${uid}
+Environment=XDG_CURRENT_DESKTOP=wlroots
+Environment=XDG_SESSION_TYPE=wayland
+SupplementaryGroups=input video render tty
+ExecStart=${dwl_bin}
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl disable --now getty@tty1.service
+sudo systemctl enable --now dwl-tty1.service
+
+systemctl --user restart sunshine.service
+
+systemctl status dwl-tty1.service --no-pager
+systemctl --user status sunshine.service --no-pager
+```
+
+验证 Sunshine 是否抓到真实 HDMI：
+
+```sh
+journalctl --user -u sunshine.service -n 120 --no-pager | grep -E 'HEADLESS|HDMI|Found monitor|Encoder|EGL|Fatal'
+```
+
+如果仍看到 `HEADLESS-1`，说明 headless 远程桌面服务还在占用 `wayland-0`，先执行：
+
+```sh
+systemctl --user disable --now dwl-headless.service wayvnc.service novnc.service
+sudo systemctl restart dwl-tty1.service
+systemctl --user restart sunshine.service
+```
+
 ## remote desktop
 
 配置会安装并启用用户级远程桌面服务：
