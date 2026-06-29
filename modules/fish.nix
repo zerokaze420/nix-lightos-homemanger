@@ -4,8 +4,10 @@
     enable = true;
 
     shellAliases = {
-      ll = "ls -lh";
-      la = "ls -lah";
+      ls = "eza --group-directories-first --icons=auto";
+      ll = "eza -lh --git --group-directories-first --icons=auto";
+      la = "eza -lah --git --group-directories-first --icons=auto";
+      tree = "eza --tree --level=2 --group-directories-first --icons=auto";
       gs = "git status --short";
       gd = "git diff";
       ff = "fastfetch";

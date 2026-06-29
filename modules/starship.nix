@@ -8,7 +8,7 @@
       add_newline = false;
       command_timeout = 1000;
 
-      format = "[╭─](overlay0)$directory$git_branch$git_status$nix_shell$cmd_duration\n[╰─](overlay0)$character";
+      format = "[╭─](overlay0)$directory$git_branch$git_status$package$c$cpp$rust$golang$nodejs$python$lua$java$php$ruby$zig$nix_shell$cmd_duration\n[╰─](overlay0)$character";
       right_format = "$time";
       palette = "catppuccin_mocha";
 
@@ -67,6 +67,78 @@
         symbol = "nix:";
         style = "bold sky";
         format = "via [$symbol$name]($style) ";
+      };
+
+      package = {
+        symbol = "pkg:";
+        style = "bold peach";
+        format = "via [$symbol$version]($style) ";
+      };
+
+      c = {
+        symbol = "c:";
+        style = "bold sky";
+        format = "via [$symbol$version]($style) ";
+      };
+
+      cpp = {
+        symbol = "c++:";
+        style = "bold sky";
+        format = "via [$symbol$version]($style) ";
+      };
+
+      rust = {
+        symbol = "rs:";
+        style = "bold red";
+        format = "via [$symbol$version]($style) ";
+      };
+
+      golang = {
+        symbol = "go:";
+        style = "bold sky";
+        format = "via [$symbol$version]($style) ";
+      };
+
+      nodejs = {
+        symbol = "node:";
+        style = "bold green";
+        format = "via [$symbol$version]($style) ";
+      };
+
+      python = {
+        symbol = "py:";
+        style = "bold yellow";
+        format = "via [$symbol$version]($style) ";
+      };
+
+      lua = {
+        symbol = "lua:";
+        style = "bold lavender";
+        format = "via [$symbol$version]($style) ";
+      };
+
+      java = {
+        symbol = "java:";
+        style = "bold red";
+        format = "via [$symbol$version]($style) ";
+      };
+
+      php = {
+        symbol = "php:";
+        style = "bold mauve";
+        format = "via [$symbol$version]($style) ";
+      };
+
+      ruby = {
+        symbol = "rb:";
+        style = "bold red";
+        format = "via [$symbol$version]($style) ";
+      };
+
+      zig = {
+        symbol = "zig:";
+        style = "bold peach";
+        format = "via [$symbol$version]($style) ";
       };
 
       cmd_duration = {
