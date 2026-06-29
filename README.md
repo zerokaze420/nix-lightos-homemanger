@@ -184,7 +184,8 @@ ls -l /dev/uinput
 
 配置会安装并启用用户级远程桌面服务：
 
-- `wayvnc.service`：Wayland/dwl VNC 后端，监听 `0.0.0.0:5900`
+- `dwl-headless.service`：用户级 headless dwl 会话
+- `wayvnc.service`：Wayland VNC 后端，监听 `0.0.0.0:5900`
 - `novnc.service`：浏览器访问入口，监听 `0.0.0.0:6080`
 
 在同一局域网内访问：
@@ -204,6 +205,7 @@ http://<主机IP>:6080/vnc.html?host=<主机IP>&port=6080
 ```sh
 systemctl --user status wayvnc.service
 systemctl --user status novnc.service
+journalctl --user -u dwl-headless.service -f
 journalctl --user -u wayvnc.service -f
 journalctl --user -u novnc.service -f
 ```

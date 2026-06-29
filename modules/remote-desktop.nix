@@ -1,17 +1,37 @@
 { pkgs, ... }:
 let
+  startDwlHeadless = pkgs.writeShellScript "start-dwl-headless" ''
+    set -eu
+
+    export XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+    export XDG_CURRENT_DESKTOP="wlroots"
+    export WLR_BACKENDS="headless"
+    export WLR_HEADLESS_OUTPUTS="1"
+    export WLR_LIBINPUT_NO_DEVICES="1"
+    export WLR_RENDERER="pixman"
+
+    exec ${pkgs.dwl}/bin/dwl
+  '';
+
   startWayvnc = pkgs.writeShellScript "start-wayvnc" ''
     set -eu
 
     export XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 
-    if [ -z "''${WAYLAND_DISPLAY:-}" ] || [ ! -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
+    for attempt in $(seq 1 30); do
+      if [ -n "''${WAYLAND_DISPLAY:-}" ] && [ -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
+        break
+      fi
+
       for socket in "$XDG_RUNTIME_DIR"/wayland-*; do
         [ -S "$socket" ] || continue
         export WAYLAND_DISPLAY="$(basename "$socket")"
         break
       done
-    fi
+
+      [ -n "''${WAYLAND_DISPLAY:-}" ] && break
+      sleep 1
+    done
 
     if [ -z "''${WAYLAND_DISPLAY:-}" ]; then
       echo "No Wayland socket found under $XDG_RUNTIME_DIR" >&2
@@ -27,15 +47,31 @@ let
 in
 {
   home.packages = with pkgs; [
+    dwl
     novnc
     python3Packages.websockify
     wayvnc
   ];
 
+  systemd.user.services.dwl-headless = {
+    Unit = {
+      Description = "Headless dwl session for remote desktop";
+    };
+
+    Service = {
+      ExecStart = "${startDwlHeadless}";
+      Restart = "on-failure";
+      RestartSec = "5s";
+    };
+
+    Install.WantedBy = [ "default.target" ];
+  };
+
   systemd.user.services.wayvnc = {
     Unit = {
       Description = "Wayland VNC server";
-      After = [ "graphical-session.target" ];
+      Wants = [ "dwl-headless.service" ];
+      After = [ "dwl-headless.service" ];
     };
 
     Service = {
