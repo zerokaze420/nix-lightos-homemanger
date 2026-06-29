@@ -84,15 +84,11 @@ in
       Restart = "on-failure";
       RestartSec = "5s";
     };
-
-    Install.WantedBy = [ "default.target" ];
   };
 
   systemd.user.services.wayvnc = {
     Unit = {
       Description = "Wayland VNC server";
-      Wants = [ "dwl-headless.service" ];
-      After = [ "dwl-headless.service" ];
     };
 
     Service = {

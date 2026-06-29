@@ -77,13 +77,14 @@ run_user_systemctl() {
     systemctl --user "$@"
 }
 
-run_user_systemctl disable --now dwl-headless.service wayvnc.service novnc.service 2>/dev/null || true
+run_user_systemctl disable --now dwl-headless.service 2>/dev/null || true
+run_user_systemctl reset-failed dwl-headless.service wayvnc.service novnc.service sunshine.service 2>/dev/null || true
 
 sudo systemctl daemon-reload
 sudo systemctl disable --now getty@tty1.service
 sudo systemctl enable --now dwl-tty1.service
 
-run_user_systemctl restart sunshine.service 2>/dev/null || true
+run_user_systemctl restart wayvnc.service novnc.service sunshine.service 2>/dev/null || true
 
 echo
 echo "dwl-tty1.service:"

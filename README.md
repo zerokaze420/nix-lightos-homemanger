@@ -211,67 +211,10 @@ ls -l /dev/uinput
 - 停用用户级 headless noVNC 远程桌面服务
 - 创建系统级 `dwl-tty1.service`
 - 使用 TTY1 直接启动真实 DRM dwl
-- 重启 Sunshine，让它重新绑定真实 Wayland 会话
+- 重启 wayvnc、noVNC 和 Sunshine，让它们重新绑定真实 Wayland 会话
 
 ```sh
-#!/usr/bin/env bash
-set -euo pipefail
-
-target_user="${1:-$USER}"
-uid="$(id -u "$target_user")"
-home_dir="$(getent passwd "$target_user" | cut -d: -f6)"
-dwl_bin="${home_dir}/.nix-profile/bin/dwl"
-
-if [ ! -x "$dwl_bin" ]; then
-  echo "dwl not found: $dwl_bin" >&2
-  echo "Run home-manager switch first." >&2
-  exit 1
-fi
-
-systemctl --user disable --now dwl-headless.service wayvnc.service novnc.service 2>/dev/null || true
-
-sudo loginctl enable-linger "$target_user"
-sudo install -d -m 0755 /etc/systemd/system
-
-sudo tee /etc/systemd/system/dwl-tty1.service >/dev/null <<EOF
-[Unit]
-Description=dwl on tty1 for Sunshine
-After=systemd-user-sessions.service
-Conflicts=getty@tty1.service
-
-[Service]
-User=${target_user}
-PAMName=login
-WorkingDirectory=${home_dir}
-TTYPath=/dev/tty1
-TTYReset=yes
-TTYVHangup=yes
-TTYVTDisallocate=yes
-StandardInput=tty
-StandardOutput=journal+console
-StandardError=journal+console
-UtmpIdentifier=tty1
-UtmpMode=user
-Environment=XDG_RUNTIME_DIR=/run/user/${uid}
-Environment=XDG_CURRENT_DESKTOP=wlroots
-Environment=XDG_SESSION_TYPE=wayland
-SupplementaryGroups=input video render tty
-ExecStart=${dwl_bin}
-Restart=on-failure
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl disable --now getty@tty1.service
-sudo systemctl enable --now dwl-tty1.service
-
-systemctl --user restart sunshine.service
-
-systemctl status dwl-tty1.service --no-pager
-systemctl --user status sunshine.service --no-pager
+./scripts/setup-sunshine-dwl-tty1.sh
 ```
 
 验证 Sunshine 是否抓到真实 HDMI：
@@ -283,18 +226,24 @@ journalctl --user -u sunshine.service -n 120 --no-pager | grep -E 'HEADLESS|HDMI
 如果仍看到 `HEADLESS-1`，说明 headless 远程桌面服务还在占用 `wayland-0`，先执行：
 
 ```sh
-systemctl --user disable --now dwl-headless.service wayvnc.service novnc.service
+systemctl --user disable --now dwl-headless.service
+systemctl --user reset-failed dwl-headless.service wayvnc.service novnc.service sunshine.service
 sudo systemctl restart dwl-tty1.service
-systemctl --user restart sunshine.service
+systemctl --user restart wayvnc.service novnc.service sunshine.service
 ```
 
 ## remote desktop
 
 配置会安装并启用用户级远程桌面服务：
 
-- `dwl-headless.service`：用户级 headless dwl 会话
 - `wayvnc.service`：Wayland VNC 后端，监听 `0.0.0.0:5900`
 - `novnc.service`：浏览器访问入口，监听 `0.0.0.0:6080`
+
+`dwl-headless.service` 仍会安装，但不默认启用。它只用于没有真实 dwl/HDMI 会话时手动启动：
+
+```sh
+systemctl --user start dwl-headless.service
+```
 
 在同一局域网内用浏览器访问：
 
