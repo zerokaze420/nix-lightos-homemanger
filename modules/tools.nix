@@ -71,7 +71,19 @@
   };
 
   home.packages = with pkgs; [
+    dnsutils
     eza
+    fd
     guix
+    iproute2
+    iputils
+    lsof
+    netcat-openbsd
+    net-tools
+    nodejs_22
+    ripgrep
+    tcpdump
+    traceroute
+    uv
   ];
 }

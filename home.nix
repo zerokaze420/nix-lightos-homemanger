@@ -3,6 +3,7 @@
   imports = [
     ./modules/dwl.nix
     ./modules/fish.nix
+    ./modules/mirrors.nix
     ./modules/nixvim.nix
     ./modules/starship.nix
     ./modules/sunshine.nix

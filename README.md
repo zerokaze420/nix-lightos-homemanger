@@ -74,9 +74,22 @@ sudo chsh -s "$(command -v fish)" "$USER"
 
 - `fastfetch`
 - `eza`
+- `ripgrep`
+- `fd`
+- `uv`
+- `nodejs_22`
+- 网络排障工具：`dnsutils`、`traceroute`、`netcat-openbsd`、`tcpdump`、`net-tools`、`lsof`、`iproute2`、`iputils`
 - `guix`
 
 注意：Home Manager 只能安装 Guix CLI。完整 Guix 还需要系统级 `guix-daemon`、构建用户和 systemd 服务，非 NixOS 下需按发行版方式另行配置。
+
+## mirrors
+
+此配置会写入常用国内镜像源：
+
+- npm：`~/.npmrc`
+- pip：`~/.config/pip/pip.conf`
+- uv：`~/.config/uv/uv.toml`
 
 ## nixvim
 
