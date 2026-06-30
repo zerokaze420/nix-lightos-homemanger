@@ -11,10 +11,12 @@
       "$mod" = "SUPER";
 
       monitor = [
-        "HDMI-A-1,3840x2160@60,0x0,1"
+        "HDMI-A-1,3840x2160@60,0x0,2"
       ];
 
       exec-once = [
+        "systemctl --user import-environment FONTCONFIG_FILE PATH XDG_CONFIG_DIRS XDG_DATA_DIRS XDG_CURRENT_DESKTOP XDG_SESSION_TYPE WAYLAND_DISPLAY"
+        "dbus-update-activation-environment --systemd FONTCONFIG_FILE PATH XDG_CONFIG_DIRS XDG_DATA_DIRS XDG_CURRENT_DESKTOP XDG_SESSION_TYPE WAYLAND_DISPLAY"
         "caelestia shell -d"
         "systemctl --user restart wayvnc.service novnc.service sunshine.service"
       ];

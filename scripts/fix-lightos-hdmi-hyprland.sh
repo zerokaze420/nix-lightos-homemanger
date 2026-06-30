@@ -8,7 +8,7 @@ TARGET_PASS="${TARGET_PASS:-hhj2418}"
 SUDO_PASS="${SUDO_PASS:-$TARGET_PASS}"
 HOST_ROOT="${HOST_ROOT:-root@$TARGET_HOST}"
 HOST_ROOT_PASS="${HOST_ROOT_PASS:-1}"
-LIGHTOS_MOUSE_MODE="${LIGHTOS_MOUSE_MODE:-absolute}"
+LIGHTOS_MOUSE_MODE="${LIGHTOS_MOUSE_MODE:-relative}"
 
 ssh_target() {
   sshpass -p "$TARGET_PASS" ssh -F /dev/null -o StrictHostKeyChecking=no -p "$TARGET_PORT" "$TARGET_USER@$TARGET_HOST" "$@"

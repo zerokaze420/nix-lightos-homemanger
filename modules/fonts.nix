@@ -10,6 +10,8 @@
     <?xml version="1.0"?>
     <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
     <fontconfig>
+      <include ignore_missing="yes">${pkgs.fontconfig.out}/etc/fonts/fonts.conf</include>
+
       <cachedir>~/.cache/fontconfig</cachedir>
 
       <dir>~/.nix-profile/share/fonts</dir>
@@ -22,6 +24,26 @@
       <include ignore_missing="yes">~/.nix-profile/etc/fonts/conf.d</include>
       <include ignore_missing="yes">/nix/var/nix/profiles/default/etc/fonts/conf.d</include>
       <include ignore_missing="yes">/etc/fonts/conf.d</include>
+
+      <alias binding="strong">
+        <family>monospace</family>
+        <prefer>
+          <family>JetBrainsMono Nerd Font Mono</family>
+          <family>Noto Sans Mono CJK SC</family>
+        </prefer>
+      </alias>
+
+      <match target="pattern">
+        <test qual="any" name="family">
+          <string>monospace</string>
+        </test>
+        <edit name="family" mode="prepend_first" binding="strong">
+          <string>JetBrainsMono Nerd Font Mono</string>
+        </edit>
+        <edit name="family" mode="append" binding="weak">
+          <string>Noto Sans Mono CJK SC</string>
+        </edit>
+      </match>
     </fontconfig>
   '';
   home.file.".fonts.conf".source = pkgs.writeText "fonts.conf" ''
@@ -60,9 +82,9 @@
       size = 12;
     };
     settings = {
-      bold_font = "JetBrainsMono Nerd Font Mono Bold";
-      italic_font = "JetBrainsMono Nerd Font Mono Italic";
-      bold_italic_font = "JetBrainsMono Nerd Font Mono Bold Italic";
+      bold_font = "auto";
+      italic_font = "auto";
+      bold_italic_font = "auto";
       confirm_os_window_close = 0;
       cursor_shape = "beam";
       enable_audio_bell = false;
