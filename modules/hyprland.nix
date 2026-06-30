@@ -18,7 +18,7 @@
 
       exec-once = [
         "caelestia shell -d"
-        "systemctl --user start wayvnc.service novnc.service sunshine.service"
+        "systemctl --user restart wayvnc.service novnc.service sunshine.service"
       ];
 
       input = {

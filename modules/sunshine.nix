@@ -6,6 +6,23 @@ let
     "https://lc03test.heiyu.space:47990"
     "http://lc03test.heiyu.space:47990"
   ];
+  startSunshine = pkgs.writeShellScript "start-sunshine" ''
+    set -eu
+
+    export XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
+    for attempt in $(seq 1 30); do
+      for socket in "$XDG_RUNTIME_DIR"/wayland-*; do
+        [ -S "$socket" ] || continue
+        export WAYLAND_DISPLAY="$(basename "$socket")"
+        exec ${pkgs.sunshine}/bin/sunshine system_tray=disabled origin_web_ui_allowed=wan csrf_allowed_origins=${csrfAllowedOrigins}
+      done
+      sleep 1
+    done
+
+    echo "No Wayland socket found under $XDG_RUNTIME_DIR" >&2
+    exit 1
+  '';
 in
 {
   home.packages = with pkgs; [
@@ -28,10 +45,9 @@ in
         "GBM_BACKENDS_PATH=${pkgs.mesa}/lib/gbm"
         "LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri"
         "LIBVA_DRIVERS_PATH=${pkgs.intel-media-driver}/lib/dri:${pkgs.intel-vaapi-driver}/lib/dri:${pkgs.mesa}/lib/dri"
-        "WAYLAND_DISPLAY=wayland-0"
         "XDG_CURRENT_DESKTOP=Hyprland"
       ];
-      ExecStart = "${pkgs.sunshine}/bin/sunshine system_tray=disabled origin_web_ui_allowed=wan csrf_allowed_origins=${csrfAllowedOrigins}";
+      ExecStart = "${startSunshine}";
       Restart = "on-failure";
       RestartSec = "5s";
     };

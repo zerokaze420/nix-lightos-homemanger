@@ -1,10 +1,6 @@
 { pkgs, ... }:
 let
-  lazycatMicroserverLogo = pkgs.fetchurl {
-    url = "https://dl.lazycat.cloud/official_site/assets/cn/imgs/home_page/%E9%A6%96%E5%B1%8F/pc_%E6%89%8B%E6%8C%81%E5%BE%AE%E6%9C%8D.webp";
-    name = "lazycat-microserver.webp";
-    hash = "sha256-i4LpKcO2hXdp3c2Nu4G3fRB2InzrLJ3GUauRpZpE48s=";
-  };
+  lazycatMicroserverLogo = ../assets/lazycat-microserver.png;
 in
 {
   programs.fastfetch = {
@@ -14,12 +10,12 @@ in
       logo = {
         source = "${lazycatMicroserverLogo}";
         type = "chafa";
-        width = 34;
-        height = 18;
+        width = 42;
+        height = 20;
         preserveAspectRatio = true;
+        recache = true;
         chafa = {
           symbols = "block";
-          canvasMode = "truecolor";
         };
         padding = {
           top = 1;
@@ -28,13 +24,13 @@ in
         };
       };
       display = {
+        pipe = false;
+        showErrors = true;
         separator = "   ";
         color = "cyan";
         key.width = 14;
       };
       modules = [
-        "title"
-        "separator"
         {
           type = "custom";
           key = "system";
@@ -71,8 +67,9 @@ in
           key = "desktop";
         }
         {
-          type = "font";
+          type = "custom";
           key = "font";
+          format = "JetBrainsMono Nerd Font Mono 12";
         }
         "break"
         {

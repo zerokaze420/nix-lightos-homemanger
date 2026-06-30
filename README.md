@@ -92,15 +92,15 @@ sudo chsh -s "$(command -v fish)" "$USER"
 
 ## fonts
 
-默认字体配置为 Aporetic Nerd Font：
+默认字体配置为 JetBrainsMono Nerd Font Mono + Aporetic：
 
 ```text
-monospace: Aporetic Serif Mono
+monospace: JetBrainsMono Nerd Font Mono, Noto Sans Mono CJK SC
 serif:     Aporetic Serif
 sans:      Aporetic Sans
 ```
 
-`foot` 终端显式使用 `Aporetic Serif Mono:size=12`。`kitty` 终端使用 `Iosevka`、`Iosevka Bold`、`Iosevka Italic` 和 `Iosevka Bold Italic`。LightOS HDMI 脚本会自动查找 Nix store 里的 `fontconfig` 默认 `fonts.conf` 并写入系统服务，避免 Hyprland/Caelestia 在非标准登录环境里找不到 fontconfig 默认配置。
+`foot` 和 `kitty` 终端都显式使用 `JetBrainsMono Nerd Font Mono:size=12`，避免 SSH/TTY 里的终端字符和 Nerd Font 图标看起来不是等宽。Home Manager 会写入用户级 `~/.config/fontconfig/fonts.conf` 并设置 `FONTCONFIG_FILE`，让非标准登录环境也能加载 fontconfig 默认配置。LightOS HDMI 脚本会自动查找 Nix store 里的 `fontconfig` 默认 `fonts.conf` 并写入系统服务，避免 Hyprland/Caelestia 在非标准登录环境里找不到 fontconfig 默认配置。
 
 ## mirrors
 
