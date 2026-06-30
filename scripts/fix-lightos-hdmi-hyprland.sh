@@ -8,6 +8,7 @@ TARGET_PASS="${TARGET_PASS:-hhj2418}"
 SUDO_PASS="${SUDO_PASS:-$TARGET_PASS}"
 HOST_ROOT="${HOST_ROOT:-root@$TARGET_HOST}"
 HOST_ROOT_PASS="${HOST_ROOT_PASS:-1}"
+LIGHTOS_MOUSE_MODE="${LIGHTOS_MOUSE_MODE:-absolute}"
 
 ssh_target() {
   sshpass -p "$TARGET_PASS" ssh -F /dev/null -o StrictHostKeyChecking=no -p "$TARGET_PORT" "$TARGET_USER@$TARGET_HOST" "$@"
@@ -22,7 +23,7 @@ copy_self() {
 }
 
 remote_run() {
-  ssh_target "TARGET_USER='$TARGET_USER' SUDO_PASS='$SUDO_PASS' bash /tmp/fix-lightos-hdmi-hyprland.sh --remote"
+  ssh_target "TARGET_USER='$TARGET_USER' SUDO_PASS='$SUDO_PASS' LIGHTOS_MOUSE_MODE='$LIGHTOS_MOUSE_MODE' bash /tmp/fix-lightos-hdmi-hyprland.sh --remote"
 }
 
 if [[ "${1:-}" != "--remote" ]]; then
@@ -363,7 +364,7 @@ Before=hyprland-hdmi.service
 
 [Service]
 Type=simple
-Environment=LIGHTOS_MOUSE_MODE=absolute
+Environment=LIGHTOS_MOUSE_MODE=$LIGHTOS_MOUSE_MODE
 ExecStart=/home/$TARGET_USER/.nix-profile/bin/python3 /opt/lightos/sunshine-evdev-bridge.py
 Restart=always
 RestartSec=1
