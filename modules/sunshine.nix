@@ -20,11 +20,7 @@ in
   systemd.user.services.sunshine = {
     Unit = {
       Description = "Sunshine self-hosted game stream host";
-      Wants = [ "dwl-headless.service" ];
-      After = [
-        "dwl-headless.service"
-        "graphical-session.target"
-      ];
+      After = [ "graphical-session.target" ];
     };
     Service = {
       Environment = [
@@ -33,7 +29,7 @@ in
         "LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri"
         "LIBVA_DRIVERS_PATH=${pkgs.intel-media-driver}/lib/dri:${pkgs.intel-vaapi-driver}/lib/dri:${pkgs.mesa}/lib/dri"
         "WAYLAND_DISPLAY=wayland-0"
-        "XDG_CURRENT_DESKTOP=wlroots"
+        "XDG_CURRENT_DESKTOP=Hyprland"
       ];
       ExecStart = "${pkgs.sunshine}/bin/sunshine system_tray=disabled origin_web_ui_allowed=wan csrf_allowed_origins=${csrfAllowedOrigins}";
       Restart = "on-failure";

@@ -1,8 +1,9 @@
 { ... }:
 {
   imports = [
-    ./modules/dwl.nix
+    ./modules/caelestia-shell.nix
     ./modules/fish.nix
+    ./modules/hyprland.nix
     ./modules/mirrors.nix
     ./modules/nixvim.nix
     ./modules/remote-desktop.nix

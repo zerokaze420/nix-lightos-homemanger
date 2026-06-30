@@ -1,5 +1,5 @@
 {
-  description = "Standalone Home Manager config for tux (dwl + sunshine)";
+  description = "Standalone Home Manager config for tux (Caelestia Shell + sunshine)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -16,11 +16,17 @@
       inputs.flake-parts.follows = "flake-parts";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    caelestia-shell = {
+      url = "github:caelestia-dots/shell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
     {
       nixpkgs,
+      caelestia-shell,
       home-manager,
       nixvim,
       ...
@@ -33,6 +39,7 @@
       homeConfigurations."tux" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         modules = [
+          caelestia-shell.homeManagerModules.default
           nixvim.homeModules.nixvim
           ./home.nix
         ];
