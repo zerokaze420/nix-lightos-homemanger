@@ -172,6 +172,11 @@ from evdev import InputDevice, UInput, ecodes
 
 VIRTUAL_DEVICE_NAME = "LightOS Sunshine Input Bridge"
 SOURCE_PATTERNS = ("sunshine", "passthrough")
+ABS_TO_REL = {
+    ecodes.ABS_X: (ecodes.REL_X, 1920),
+    ecodes.ABS_Y: (ecodes.REL_Y, 1080),
+}
+REL_ACTIVE_WINDOW_SECONDS = 0.25
 
 
 def log(message):
@@ -188,6 +193,8 @@ def source_kind(device):
         return "keyboard"
     if name == "mouse passthrough":
         return "mouse"
+    if name == "mouse passthrough (absolute)":
+        return "mouse_absolute"
     return None
 
 
@@ -244,10 +251,40 @@ def open_sources(existing):
         log(f"tracking {path} ({device.name}) as {kind}")
 
 
-def forward_event(ui, event):
+def forward_absolute(ui, device, event, state):
+    if event.code not in ABS_TO_REL:
+        return
+    now = time.monotonic()
+    if now - state["last_relative_mouse"] < REL_ACTIVE_WINDOW_SECONDS:
+        return
+
+    rel_code, rel_span = ABS_TO_REL[event.code]
+    state_key = (device.path, event.code)
+    previous = state["absolute_positions"].get(state_key)
+    state["absolute_positions"][state_key] = event.value
+    if previous is None:
+        return
+
+    try:
+        info = device.absinfo(event.code)
+        abs_span = max(1, info.max - info.min)
+    except OSError:
+        abs_span = 32767
+
+    delta = int(round((event.value - previous) * rel_span / abs_span))
+    if delta:
+        ui.write(ecodes.EV_REL, rel_code, delta)
+
+
+def forward_event(ui, device, kind, event, state):
     if event.type == ecodes.EV_SYN:
         ui.syn()
         return
+    if event.type == ecodes.EV_ABS and kind == "mouse_absolute":
+        forward_absolute(ui, device, event, state)
+        return
+    if event.type == ecodes.EV_REL and kind == "mouse":
+        state["last_relative_mouse"] = time.monotonic()
     if event.type in (ecodes.EV_KEY, ecodes.EV_REL, ecodes.EV_MSC):
         ui.write(event.type, event.code, event.value)
 
@@ -256,6 +293,10 @@ def main():
     ui = build_uinput()
     log(f"created virtual input device: {VIRTUAL_DEVICE_NAME}")
     sources = {}
+    state = {
+        "last_relative_mouse": 0,
+        "absolute_positions": {},
+    }
     last_refresh = 0
 
     while True:
@@ -272,12 +313,18 @@ def main():
         ready, _, _ = select.select(list(fds), [], [], 0.25)
         for fd in ready:
             device = fds[fd]
+            kind = source_kind(device)
             try:
                 for event in device.read():
-                    forward_event(ui, event)
+                    forward_event(ui, device, kind, event, state)
             except OSError:
                 log(f"lost {device.path} ({device.name})")
                 sources.pop(device.path, None)
+                state["absolute_positions"] = {
+                    key: value
+                    for key, value in state["absolute_positions"].items()
+                    if key[0] != device.path
+                }
                 try:
                     device.close()
                 except OSError:
