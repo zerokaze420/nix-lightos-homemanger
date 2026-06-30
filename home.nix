@@ -1,6 +1,7 @@
 { ... }:
 {
   imports = [
+    ./modules/browser.nix
     ./modules/caelestia-shell.nix
     ./modules/fish.nix
     ./modules/fonts.nix

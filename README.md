@@ -133,6 +133,7 @@ sans:      Aporetic Sans
 
 ```text
 Super + Enter      打开 kitty 终端
+Super + B          打开 Firefox 浏览器
 Super + D          打开 Caelestia 应用启动器
 Super + Q          关闭当前窗口
 Super + Shift + Q  退出 Hyprland
@@ -141,6 +142,8 @@ Super + Space      当前窗口切换浮动
 ```
 
 当前已禁用 Caelestia 的 idle timeouts，避免空闲后自动锁屏/休眠导致 LightOS 容器里解锁认证异常。
+
+浏览器使用 Firefox，并设置为默认 `http`/`https`/`html` 处理程序。Caelestia 启动器里搜索 `Firefox` 也可以打开。
 
 无显示管理器时，此配置会在 fish 登录 shell 的 TTY1 登录后自动 `exec Hyprland`。LightOS 容器里不建议依赖 TTY 登录路径，优先使用仓库脚本创建系统级 HDMI 会话。
 

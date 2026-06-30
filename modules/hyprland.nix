@@ -49,6 +49,7 @@
 
       bind = [
         "$mod, Return, exec, kitty"
+        "$mod, B, exec, firefox"
         "$mod, D, exec, caelestia shell launcher open"
         "$mod, Q, killactive"
         "$mod SHIFT, Q, exit"
