@@ -34,6 +34,18 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      caelestiaShellPatched =
+        caelestia-shell.packages.${system}.with-cli.overrideAttrs
+          (old: {
+            postInstall = old.postInstall + ''
+              cat > "$out/share/caelestia-shell/assets/pam.d/passwd" <<'PAM_EOF'
+              #%PAM-1.0
+
+              auth required pam_unix.so nullok
+              account required pam_unix.so
+              PAM_EOF
+            '';
+          });
     in
     {
       homeConfigurations."tux" = home-manager.lib.homeManagerConfiguration {
@@ -41,6 +53,7 @@
         modules = [
           caelestia-shell.homeManagerModules.default
           nixvim.homeModules.nixvim
+          { _module.args.caelestiaShellPatched = caelestiaShellPatched; }
           ./home.nix
         ];
       };

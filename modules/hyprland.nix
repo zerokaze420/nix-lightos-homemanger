@@ -1,28 +1,4 @@
 { lib, pkgs, ... }:
-let
-  startHdmiHyprland = pkgs.writeShellScript "start-hdmi-hyprland" ''
-    set -eu
-
-    export XDG_SESSION_TYPE=wayland
-    export XDG_CURRENT_DESKTOP=Hyprland
-    export XDG_SESSION_DESKTOP=Hyprland
-    export XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-    export LIBSEAT_BACKEND=seatd
-
-    if [ -S "$XDG_RUNTIME_DIR/wayland-0" ] || pgrep -xu "$(id -u)" Hyprland >/dev/null; then
-      echo "Hyprland is already running"
-      exit 0
-    fi
-
-    if [ ! -r /dev/tty1 ] || [ ! -w /dev/tty1 ]; then
-      echo "Cannot open /dev/tty1; grant tux rw access to tty1 before starting HDMI Hyprland" >&2
-      exit 1
-    fi
-
-    exec </dev/tty1 >/dev/tty1 2>&1
-    exec ${pkgs.hyprland}/bin/Hyprland
-  '';
-in
 {
   wayland.windowManager.hyprland = {
     enable = true;
@@ -68,7 +44,7 @@ in
       };
 
       bind = [
-        "$mod, Return, exec, foot"
+        "$mod, Return, exec, kitty"
         "$mod, D, exec, caelestia shell launcher open"
         "$mod, Q, killactive"
         "$mod SHIFT, Q, exit"
@@ -85,25 +61,6 @@ in
     Exec=Hyprland
     Type=Application
   '';
-
-  systemd.user.services.hyprland-hdmi = {
-    Unit = {
-      Description = "Hyprland HDMI session on tty1";
-      After = [ "graphical-session-pre.target" ];
-      Wants = [ "graphical-session-pre.target" ];
-      ConditionPathExists = "/dev/tty1";
-    };
-
-    Service = {
-      ExecStart = "${startHdmiHyprland}";
-      Restart = "on-failure";
-      RestartSec = "3s";
-      StandardOutput = "journal";
-      StandardError = "journal";
-    };
-
-    Install.WantedBy = [ "default.target" ];
-  };
 
   programs.fish.loginShellInit = lib.mkAfter ''
     if test -z "$WAYLAND_DISPLAY"; and test -z "$DISPLAY"; and test (tty) = "/dev/tty1"

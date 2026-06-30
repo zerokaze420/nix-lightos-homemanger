@@ -3,6 +3,7 @@
   imports = [
     ./modules/caelestia-shell.nix
     ./modules/fish.nix
+    ./modules/fonts.nix
     ./modules/hyprland.nix
     ./modules/mirrors.nix
     ./modules/nixvim.nix

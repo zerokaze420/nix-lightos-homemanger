@@ -63,6 +63,7 @@ MESA_LIB_DIR="$(dirname "$(find_one '*/lib/libEGL_mesa.so')")"
 GLVND_LIB_DIR="$(dirname "$(find_one '*/lib/libEGL.so.1')")"
 GBM_LIB_DIR="$(dirname "$(find_one '*/lib/libgbm.so.1')")"
 EGL_VENDOR_JSON="$(find_one '*/share/glvnd/egl_vendor.d/50_mesa.json')"
+FONTCONFIG_FILE="$(find_one '*/etc/fonts/fonts.conf')"
 
 if [[ -z "$MESA_GBM" || ! -e "$MESA_GBM" ]]; then
   echo "could not find Mesa GBM driver in /nix/store" >&2
@@ -83,6 +84,7 @@ echo "[target] Mesa lib: ${MESA_LIB_DIR:-missing}"
 echo "[target] GLVND lib: ${GLVND_LIB_DIR:-missing}"
 echo "[target] GBM lib: ${GBM_LIB_DIR:-missing}"
 echo "[target] EGL vendor: ${EGL_VENDOR_JSON:-missing}"
+echo "[target] Fontconfig: ${FONTCONFIG_FILE:-missing}"
 
 echo "[target] stopping conflicting services"
 systemctl --user disable --now hyprland-hdmi.service 2>/dev/null || true
@@ -160,6 +162,9 @@ Environment=USER=$TARGET_USER
 Environment=LOGNAME=$TARGET_USER
 Environment=SHELL=/home/$TARGET_USER/.nix-profile/bin/fish
 Environment=PATH=/home/$TARGET_USER/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/local/bin:/usr/bin:/bin
+Environment=XDG_DATA_DIRS=/home/$TARGET_USER/.nix-profile/share:/nix/var/nix/profiles/default/share:/usr/local/share:/usr/share
+Environment=XDG_CONFIG_DIRS=/home/$TARGET_USER/.nix-profile/etc/xdg:/nix/var/nix/profiles/default/etc/xdg:/etc/xdg
+Environment=FONTCONFIG_FILE=$FONTCONFIG_FILE
 Environment=XDG_SESSION_TYPE=wayland
 Environment=XDG_CURRENT_DESKTOP=Hyprland
 Environment=XDG_SESSION_DESKTOP=Hyprland
@@ -199,6 +204,10 @@ sudo_cmd systemctl enable --now seatd.service hyprland-hdmi.service
 echo "[target] waiting for Hyprland"
 sleep 8
 
+echo "[target] restarting Sunshine before input detection"
+systemctl --user restart sunshine.service 2>/dev/null || true
+sleep 3
+
 has_passthrough_input() {
   grep -R -E 'Mouse passthrough|Keyboard passthrough|Touch passthrough|Pen passthrough' \
     /sys/class/input/event*/device/name >/dev/null 2>&1
@@ -231,6 +240,10 @@ if has_passthrough_input && ! hyprland_has_passthrough_fd; then
   sleep 8
 fi
 
+echo "[target] restarting user desktop companion services"
+systemctl --user restart wayvnc.service novnc.service 2>/dev/null || true
+sleep 2
+
 if ! pgrep -af 'caelestia|quickshell' >/dev/null 2>&1; then
   echo "[target] starting Caelestia shell"
   H="$(find /run/user/1000/hypr -maxdepth 1 -mindepth 1 -type d -printf '%f\n' 2>/dev/null | sort | tail -1)"
@@ -240,6 +253,9 @@ if ! pgrep -af 'caelestia|quickshell' >/dev/null 2>&1; then
       USER="$TARGET_USER" \
       LOGNAME="$TARGET_USER" \
       PATH="/home/$TARGET_USER/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/local/bin:/usr/bin:/bin" \
+      XDG_DATA_DIRS="/home/$TARGET_USER/.nix-profile/share:/nix/var/nix/profiles/default/share:/usr/local/share:/usr/share" \
+      XDG_CONFIG_DIRS="/home/$TARGET_USER/.nix-profile/etc/xdg:/nix/var/nix/profiles/default/etc/xdg:/etc/xdg" \
+      FONTCONFIG_FILE="$FONTCONFIG_FILE" \
       XDG_RUNTIME_DIR=/run/user/1000 \
       WAYLAND_DISPLAY=wayland-1 \
       HYPRLAND_INSTANCE_SIGNATURE="$H" \

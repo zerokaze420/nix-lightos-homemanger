@@ -1,6 +1,6 @@
 # nix-homemager
 
-Standalone Home Manager 配置，当前包含 dwl、Sunshine、fish、starship 和 nixvim 配置。
+Standalone Home Manager 配置，当前包含 Hyprland、Caelestia Shell、Sunshine、fish、starship、nixvim 和字体配置。
 
 ## 使用前调整
 
@@ -86,7 +86,21 @@ sudo chsh -s "$(command -v fish)" "$USER"
 - 网络排障工具：`dnsutils`、`traceroute`、`netcat-openbsd`、`tcpdump`、`net-tools`、`lsof`、`iproute2`、`iputils`
 - `guix`
 
+`fastfetch` 配置使用 LazyCat 微服图片的 `chafa` 彩色字符 logo，固定显示 `system = LightOS`、`host = lazycat`，并按 shell/desktop/font、cpu/gpu/memory/disk/local ip 分组输出，fish 里可直接用 `ff` 调用。
+
 注意：Home Manager 只能安装 Guix CLI。完整 Guix 还需要系统级 `guix-daemon`、构建用户和 systemd 服务，非 NixOS 下需按发行版方式另行配置。
+
+## fonts
+
+默认字体配置为 Aporetic Nerd Font：
+
+```text
+monospace: Aporetic Serif Mono
+serif:     Aporetic Serif
+sans:      Aporetic Sans
+```
+
+`foot` 终端显式使用 `Aporetic Serif Mono:size=12`。LightOS HDMI 脚本会自动查找 Nix store 里的 `fontconfig` 默认 `fonts.conf` 并写入系统服务，避免 Hyprland/Caelestia 在非标准登录环境里找不到 fontconfig 默认配置。
 
 ## mirrors
 
@@ -105,38 +119,102 @@ sudo chsh -s "$(command -v fish)" "$USER"
 - LSP/补全：Nix、Lua、Shell、JSON、YAML
 - 常用快捷键：`<leader>ff` 查文件、`<leader>fg` 搜全文、`<leader>e` 打开 Oil、`gd` 跳定义、`K` 看 hover
 
-## dwl
+## Hyprland + Caelestia Shell
 
-配置会安装 `dwl`、`foot`、`wmenu`、`swaybg`、`wlr-randr`、`wl-clipboard`，并写入 Wayland 会话文件：
-
-```text
-~/.local/share/wayland-sessions/dwl.desktop
-```
-
-使用 SDDM/GDM/greetd 等显示管理器时，在会话列表里选择 `dwl`。非 NixOS 下设置默认会话属于系统级配置，需要在显示管理器侧完成。
-
-无显示管理器时，此配置会在 fish 登录 shell 的 TTY1 登录后自动 `exec dwl`。若要开机后直接进入 dwl，还需要系统级自动登录 TTY1，并确保用户登录 shell 是 fish。非 NixOS 可创建：
+配置会安装 `Hyprland`、`Caelestia Shell`、`foot`、`seatd` 和 `xdg-desktop-portal-hyprland`，并写入 Wayland 会话文件：
 
 ```text
-/etc/systemd/system/getty@tty1.service.d/autologin.conf
+~/.local/share/wayland-sessions/hyprland.desktop
 ```
 
-内容示例：
+使用 SDDM/GDM/greetd 等显示管理器时，在会话列表里选择 `Hyprland`。非 NixOS 下设置默认会话属于系统级配置，需要在显示管理器侧完成。
 
-```ini
-[Service]
-ExecStart=
-ExecStart=-/usr/bin/agetty --autologin tux --noclear %I $TERM
+当前 Hyprland 键位：
+
+```text
+Super + Enter      打开 kitty 终端
+Super + D          打开 Caelestia 应用启动器
+Super + Q          关闭当前窗口
+Super + Shift + Q  退出 Hyprland
+Super + F          当前窗口全屏
+Super + Space      当前窗口切换浮动
 ```
 
-然后执行：
+无显示管理器时，此配置会在 fish 登录 shell 的 TTY1 登录后自动 `exec Hyprland`。LightOS 容器里不建议依赖 TTY 登录路径，优先使用仓库脚本创建系统级 HDMI 会话。
+
+### LightOS HDMI 自启动
+
+仓库提供了 LightOS/runc 容器专用修复脚本：
 
 ```sh
-sudo systemctl daemon-reload
-sudo systemctl restart getty@tty1.service
+bash scripts/fix-lightos-hdmi-hyprland.sh
 ```
 
-注意：TTY 自动登录会绕过本机密码输入，只适合可信物理环境。
+脚本默认部署到：
+
+```text
+ssh -p 1231 tux@lc03test.heiyu.space
+```
+
+并通过宿主机：
+
+```text
+ssh root@lc03test.heiyu.space
+```
+
+完成 `/dev/tty1` 权限修复。脚本会在容器里创建并启用：
+
+```ini
+seatd.service
+hyprland-hdmi.service
+```
+
+它会停止 `getty@tty1.service`，用 `seatd` 让 Hyprland 抢真实 HDMI/DRM，并补齐 `/run/opengl-driver` 的 Mesa/GLVND 链接。
+
+验证当前 HDMI 桌面状态：
+
+```sh
+sshpass -p hhj2418 ssh -F /dev/null -p 1231 tux@lc03test.heiyu.space \
+  'systemctl --no-pager --plain status seatd.service hyprland-hdmi.service;
+   pgrep -af "Hyprland|quickshell|caelestia|wayvnc|sunshine"'
+```
+
+查看 Hyprland 是否识别到 Sunshine 键鼠透传：
+
+```sh
+sshpass -p hhj2418 ssh -F /dev/null -p 1231 tux@lc03test.heiyu.space \
+  'H=$(find /run/user/1000/hypr -maxdepth 1 -mindepth 1 -type d -printf "%f\n" | sort | tail -1);
+   HYPRLAND_INSTANCE_SIGNATURE="$H" XDG_RUNTIME_DIR=/run/user/1000 hyprctl devices'
+```
+
+如果输出里有 `keyboard-passthrough` 且 `main: yes`，键盘已经被 Hyprland 接管；如果有 `mouse-passthrough`，鼠标也已经被识别。
+
+### Caelestia 启动器找不到应用
+
+Caelestia 启动器依赖 `.desktop` 文件。应用一般来自这些目录：
+
+```text
+~/.nix-profile/share/applications
+/nix/var/nix/profiles/default/share/applications
+/usr/local/share/applications
+/usr/share/applications
+```
+
+LightOS HDMI 会话由系统级 `hyprland-hdmi.service` 启动，不经过普通登录 shell，所以脚本显式设置了：
+
+```text
+XDG_DATA_DIRS=~/.nix-profile/share:/nix/var/nix/profiles/default/share:/usr/local/share:/usr/share
+XDG_CONFIG_DIRS=~/.nix-profile/etc/xdg:/nix/var/nix/profiles/default/etc/xdg:/etc/xdg
+```
+
+应用启动器仍为空时，先确认应用是否真的有 desktop 文件：
+
+```sh
+find ~/.nix-profile/share/applications /nix/var/nix/profiles/default/share/applications /usr/share/applications \
+  -maxdepth 1 -name '*.desktop' 2>/dev/null | sort | sed -n '1,80p'
+```
+
+如果这里为空，说明还没有安装带 GUI desktop entry 的应用；如果这里有内容但启动器为空，重跑 LightOS HDMI 脚本并重启 `hyprland-hdmi.service`。
 
 ## Sunshine
 
@@ -196,41 +274,9 @@ ls -l /dev/uinput
 
 防火墙需要放行 TCP `47984/47989/47990/48010` 和 UDP `47998-48000`。
 
-### Sunshine 使用真实 HDMI/dwl
+### Sunshine 使用真实 HDMI
 
-用户级 noVNC 远程桌面使用的是 headless dwl，Sunshine 会看到 `HEADLESS-1`。这个输出适合 noVNC，但不能作为 Sunshine 游戏串流的编码源。要让 Sunshine 捕获真实 HDMI，需要启动真实 DRM/HDMI dwl 会话。
-
-仓库里提供了一键脚本：
-
-```sh
-./scripts/setup-sunshine-dwl-tty1.sh
-```
-
-下面脚本会：
-
-- 停用用户级 headless noVNC 远程桌面服务
-- 创建系统级 `dwl-tty1.service`
-- 使用 TTY1 直接启动真实 DRM dwl
-- 重启 wayvnc、noVNC 和 Sunshine，让它们重新绑定真实 Wayland 会话
-
-```sh
-./scripts/setup-sunshine-dwl-tty1.sh
-```
-
-验证 Sunshine 是否抓到真实 HDMI：
-
-```sh
-journalctl --user -u sunshine.service -n 120 --no-pager | grep -E 'HEADLESS|HDMI|Found monitor|Encoder|EGL|Fatal'
-```
-
-如果仍看到 `HEADLESS-1`，说明 headless 远程桌面服务还在占用 `wayland-0`，先执行：
-
-```sh
-systemctl --user disable --now dwl-headless.service
-systemctl --user reset-failed dwl-headless.service wayvnc.service novnc.service sunshine.service
-sudo systemctl restart dwl-tty1.service
-systemctl --user restart wayvnc.service novnc.service sunshine.service
-```
+Sunshine 要捕获真实 HDMI 时，使用上面的 LightOS HDMI 自启动脚本，让 `hyprland-hdmi.service` 接管 `/dev/tty1`、DRM 和 Sunshine 透传输入。不要再启动旧的 headless/dwl 会话，否则 Sunshine 可能绑定到错误的 Wayland 输出。
 
 ## remote desktop
 
@@ -238,12 +284,6 @@ systemctl --user restart wayvnc.service novnc.service sunshine.service
 
 - `wayvnc.service`：Wayland VNC 后端，监听 `0.0.0.0:5900`
 - `novnc.service`：浏览器访问入口，监听 `0.0.0.0:6080`
-
-`dwl-headless.service` 仍会安装，但不默认启用。它只用于没有真实 dwl/HDMI 会话时手动启动：
-
-```sh
-systemctl --user start dwl-headless.service
-```
 
 在同一局域网内用浏览器访问：
 
@@ -257,21 +297,11 @@ http://<主机IP>:6080/vnc.html?host=<主机IP>&port=6080
 <主机IP>:5900
 ```
 
-headless dwl 启动后会自动打开一个 `foot` 终端。dwl 默认 Mod 键是 `Alt`，常用键位：
-
-- `Alt+Shift+Enter`：打开 `foot`
-- `Alt+p`：打开 `wmenu-run`
-- `Alt+j/k`：切换窗口焦点
-- `Alt+Shift+c`：关闭当前窗口
-- `Alt+1..9`：切换 tag
-- `Alt+Shift+q`：退出 dwl
-
 服务状态和日志：
 
 ```sh
 systemctl --user status wayvnc.service
 systemctl --user status novnc.service
-journalctl --user -u dwl-headless.service -f
 journalctl --user -u wayvnc.service -f
 journalctl --user -u novnc.service -f
 ```

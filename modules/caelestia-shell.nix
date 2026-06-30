@@ -1,7 +1,8 @@
-{ pkgs, ... }:
+{ caelestiaShellPatched, pkgs, ... }:
 {
   programs.caelestia = {
     enable = true;
+    package = caelestiaShellPatched;
 
     systemd = {
       enable = false;
@@ -22,6 +23,8 @@
 
   home.sessionVariables = {
     XDG_CURRENT_DESKTOP = "Hyprland";
+    XDG_DATA_DIRS = "$HOME/.nix-profile/share:/nix/var/nix/profiles/default/share:/usr/local/share:/usr/share";
+    XDG_CONFIG_DIRS = "$HOME/.nix-profile/etc/xdg:/nix/var/nix/profiles/default/etc/xdg:/etc/xdg";
     MOZ_ENABLE_WAYLAND = "1";
     NIXOS_OZONE_WL = "1";
   };
