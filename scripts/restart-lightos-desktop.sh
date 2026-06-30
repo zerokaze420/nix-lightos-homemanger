@@ -15,14 +15,23 @@ status() {
   ssh_target '
     set -e
     echo "== system services =="
-    systemctl --no-pager --plain status seatd.service hyprland-hdmi.service 2>/dev/null | sed -n "1,120p" || true
+    systemctl --no-pager --plain status seatd.service sunshine-input-bridge.service hyprland-hdmi.service 2>/dev/null | sed -n "1,180p" || true
 
     echo
     echo "== desktop processes =="
-    pgrep -af "Hyprland|quickshell|caelestia|wayvnc|sunshine" || true
+    pgrep -af "Hyprland|quickshell|caelestia|wayvnc|sunshine|sunshine-evdev-bridge" || true
 
     echo
     echo "== input devices =="
+    for name in /sys/class/input/event*/device/name; do
+      [ -r "$name" ] || continue
+      case "$(cat "$name")" in
+        *"LightOS Sunshine Input Bridge"*|*"Mouse passthrough"*|*"Keyboard passthrough"*|*"Touch passthrough"*|*"Pen passthrough"*)
+          printf "%s: %s\n" "${name#/sys/class/input/}" "$(cat "$name")"
+          ;;
+      esac
+    done
+    echo
     H="$(find /run/user/1000/hypr -maxdepth 1 -mindepth 1 -type d -printf "%f\n" 2>/dev/null | sort | tail -1)"
     if [ -n "$H" ]; then
       HYPRLAND_INSTANCE_SIGNATURE="$H" XDG_RUNTIME_DIR=/run/user/1000 hyprctl devices 2>/dev/null | sed -n "1,180p" || true

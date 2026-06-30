@@ -53,6 +53,7 @@ find_one() {
 
 need_bin Hyprland
 need_bin seatd
+need_bin python3
 
 HYPRLAND_BIN="$(command -v Hyprland)"
 SEATD_BIN="$(command -v seatd)"
@@ -118,8 +119,8 @@ echo "[target] Fontconfig: ${FONTCONFIG_FILE:-missing}"
 echo "[target] stopping conflicting services"
 systemctl --user disable --now hyprland-hdmi.service 2>/dev/null || true
 systemctl --user reset-failed hyprland-hdmi.service 2>/dev/null || true
-sudo_cmd systemctl stop hyprland-hdmi.service seatd.service getty@tty1.service 2>/dev/null || true
-sudo_cmd systemctl reset-failed hyprland-hdmi.service seatd.service getty@tty1.service 2>/dev/null || true
+sudo_cmd systemctl stop hyprland-hdmi.service sunshine-input-bridge.service seatd.service getty@tty1.service 2>/dev/null || true
+sudo_cmd systemctl reset-failed hyprland-hdmi.service sunshine-input-bridge.service seatd.service getty@tty1.service 2>/dev/null || true
 
 echo "[target] installing /run/opengl-driver links"
 sudo_cmd install -d \
@@ -160,6 +161,168 @@ if [[ -n "${INTEL_MEDIA_DRI:-}" && -d "$INTEL_MEDIA_DRI" ]]; then
 fi
 
 echo "[target] installing system services"
+cat > /tmp/sunshine-evdev-bridge.py <<'PYEOF'
+#!/usr/bin/env python3
+import glob
+import select
+import time
+
+from evdev import InputDevice, UInput, ecodes
+
+
+VIRTUAL_DEVICE_NAME = "LightOS Sunshine Input Bridge"
+SOURCE_PATTERNS = ("sunshine", "passthrough")
+ABS_TO_REL = {
+    ecodes.ABS_X: (ecodes.REL_X, 1920),
+    ecodes.ABS_Y: (ecodes.REL_Y, 1080),
+}
+
+
+def log(message):
+    print(f"[sunshine-evdev-bridge] {message}", flush=True)
+
+
+def source_kind(device):
+    name = (device.name or "").lower()
+    if name == VIRTUAL_DEVICE_NAME.lower():
+        return None
+    if not any(pattern in name for pattern in SOURCE_PATTERNS):
+        return None
+    if "keyboard" in name:
+        return "keyboard"
+    if "mouse" in name:
+        return "mouse"
+    return "other"
+
+
+def build_uinput():
+    key_codes = sorted({
+        code
+        for name, code in ecodes.ecodes.items()
+        if isinstance(code, int)
+        and name.startswith("KEY_")
+        and 0 < code < ecodes.KEY_MAX
+    })
+    key_codes.extend([
+        ecodes.BTN_LEFT,
+        ecodes.BTN_RIGHT,
+        ecodes.BTN_MIDDLE,
+        ecodes.BTN_SIDE,
+        ecodes.BTN_EXTRA,
+        ecodes.BTN_FORWARD,
+        ecodes.BTN_BACK,
+        ecodes.BTN_TASK,
+    ])
+    capabilities = {
+        ecodes.EV_KEY: sorted(set(key_codes)),
+        ecodes.EV_REL: [
+            ecodes.REL_X,
+            ecodes.REL_Y,
+            ecodes.REL_WHEEL,
+            ecodes.REL_HWHEEL,
+            ecodes.REL_WHEEL_HI_RES,
+            ecodes.REL_HWHEEL_HI_RES,
+        ],
+        ecodes.EV_MSC: [ecodes.MSC_SCAN],
+    }
+    return UInput(capabilities, name=VIRTUAL_DEVICE_NAME, bustype=ecodes.BUS_USB)
+
+
+def open_sources(existing):
+    for path in sorted(glob.glob("/dev/input/event*")):
+        if path in existing:
+            continue
+        try:
+            device = InputDevice(path)
+        except OSError:
+            continue
+        kind = source_kind(device)
+        if not kind:
+            device.close()
+            continue
+        try:
+            device.grab()
+        except OSError as exc:
+            log(f"could not grab {path} ({device.name}): {exc}")
+        existing[path] = device
+        log(f"tracking {path} ({device.name}) as {kind}")
+
+
+def abs_to_rel(ui, device, event, abs_state):
+    if event.code not in ABS_TO_REL:
+        return
+    rel_code, rel_span = ABS_TO_REL[event.code]
+    state_key = (device.path, event.code)
+    previous = abs_state.get(state_key)
+    abs_state[state_key] = event.value
+    if previous is None:
+        return
+
+    try:
+        info = device.absinfo(event.code)
+        abs_span = max(1, info.max - info.min)
+    except OSError:
+        abs_span = 32767
+
+    delta = int(round((event.value - previous) * rel_span / abs_span))
+    if delta:
+        ui.write(ecodes.EV_REL, rel_code, delta)
+
+
+def forward_event(ui, device, event, abs_state):
+    if event.type == ecodes.EV_SYN:
+        ui.syn()
+        return
+    if event.type == ecodes.EV_ABS:
+        abs_to_rel(ui, device, event, abs_state)
+        return
+    if event.type in (ecodes.EV_KEY, ecodes.EV_REL, ecodes.EV_MSC):
+        ui.write(event.type, event.code, event.value)
+
+
+def main():
+    ui = build_uinput()
+    log(f"created virtual input device: {VIRTUAL_DEVICE_NAME}")
+    sources = {}
+    abs_state = {}
+    last_refresh = 0
+
+    while True:
+        now = time.monotonic()
+        if now - last_refresh > 1:
+            open_sources(sources)
+            last_refresh = now
+
+        fds = {device.fd: device for device in sources.values()}
+        if not fds:
+            time.sleep(0.25)
+            continue
+
+        ready, _, _ = select.select(list(fds), [], [], 0.25)
+        for fd in ready:
+            device = fds[fd]
+            try:
+                for event in device.read():
+                    forward_event(ui, device, event, abs_state)
+            except OSError:
+                log(f"lost {device.path} ({device.name})")
+                sources.pop(device.path, None)
+                abs_state = {
+                    key: value
+                    for key, value in abs_state.items()
+                    if key[0] != device.path
+                }
+                try:
+                    device.close()
+                except OSError:
+                    pass
+
+
+if __name__ == "__main__":
+    main()
+PYEOF
+chmod 0755 /tmp/sunshine-evdev-bridge.py
+
 cat > /tmp/seatd.service <<EOF
 [Unit]
 Description=Seat management daemon for HDMI compositor
@@ -175,11 +338,30 @@ RestartSec=1
 WantedBy=multi-user.target
 EOF
 
+cat > /tmp/sunshine-input-bridge.service <<EOF
+[Unit]
+Description=LightOS Sunshine evdev to uinput bridge
+After=seatd.service
+Before=hyprland-hdmi.service
+
+[Service]
+Type=simple
+ExecStart=/home/$TARGET_USER/.nix-profile/bin/python3 /opt/lightos/sunshine-evdev-bridge.py
+Restart=always
+RestartSec=1
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 cat > /tmp/hyprland-hdmi.service <<EOF
 [Unit]
 Description=Hyprland HDMI session for tux on tty1
-After=seatd.service systemd-user-sessions.service dbus.service
+After=seatd.service sunshine-input-bridge.service systemd-user-sessions.service dbus.service
 Requires=seatd.service
+Wants=sunshine-input-bridge.service
 Conflicts=getty@tty1.service
 
 [Service]
@@ -210,6 +392,7 @@ Environment=__EGL_VENDOR_LIBRARY_DIRS=/run/opengl-driver/share/glvnd/egl_vendor.
 Environment=__GLX_VENDOR_LIBRARY_NAME=mesa
 ExecStartPre=/bin/mkdir -p /run/user/1000
 ExecStartPre=/bin/chown $TARGET_USER:$TARGET_USER /run/user/1000
+ExecStartPre=/bin/sleep 1
 ExecStart=$HYPRLAND_BIN
 Restart=on-failure
 RestartSec=3
@@ -224,11 +407,14 @@ UtmpMode=user
 WantedBy=multi-user.target
 EOF
 
+sudo_cmd install -d /opt/lightos
+sudo_cmd install -m 0755 /tmp/sunshine-evdev-bridge.py /opt/lightos/sunshine-evdev-bridge.py
 sudo_cmd install -m 0644 /tmp/seatd.service /etc/systemd/system/seatd.service
+sudo_cmd install -m 0644 /tmp/sunshine-input-bridge.service /etc/systemd/system/sunshine-input-bridge.service
 sudo_cmd install -m 0644 /tmp/hyprland-hdmi.service /etc/systemd/system/hyprland-hdmi.service
 sudo_cmd systemctl daemon-reload
 sudo_cmd systemctl disable --now getty@tty1.service 2>/dev/null || true
-sudo_cmd systemctl enable --now seatd.service hyprland-hdmi.service
+sudo_cmd systemctl enable --now seatd.service sunshine-input-bridge.service hyprland-hdmi.service
 
 echo "[target] waiting for Hyprland"
 sleep 8
@@ -242,7 +428,7 @@ has_passthrough_input() {
     /sys/class/input/event*/device/name >/dev/null 2>&1
 }
 
-hyprland_has_passthrough_fd() {
+hyprland_has_streaming_input_fd() {
   local hpid
   hpid="$(pidof Hyprland .Hyprland-wrapp 2>/dev/null | awk '{print $1}')"
   [[ -n "$hpid" ]] || return 1
@@ -253,7 +439,7 @@ hyprland_has_passthrough_fd() {
       /dev/input/event*)
         name="$(cat "/sys/class/input/${target##*/}/device/name" 2>/dev/null || true)"
         case "$name" in
-          *"Mouse passthrough"*|*"Keyboard passthrough"*|*"Touch passthrough"*|*"Pen passthrough"*)
+          *"LightOS Sunshine Input Bridge"*|*"Mouse passthrough"*|*"Keyboard passthrough"*|*"Touch passthrough"*|*"Pen passthrough"*)
             return 0
             ;;
         esac
@@ -263,8 +449,8 @@ hyprland_has_passthrough_fd() {
   return 1
 }
 
-if has_passthrough_input && ! hyprland_has_passthrough_fd; then
-  echo "[target] passthrough input exists but Hyprland did not open it; restarting Hyprland once"
+if has_passthrough_input && ! hyprland_has_streaming_input_fd; then
+  echo "[target] streaming input exists but Hyprland did not open bridge input; restarting Hyprland once"
   sudo_cmd systemctl restart hyprland-hdmi.service
   sleep 8
 fi
@@ -296,12 +482,12 @@ if ! pgrep -af 'caelestia|quickshell' >/dev/null 2>&1; then
 fi
 
 echo "== service status =="
-sudo_cmd systemctl --no-pager --plain status seatd.service hyprland-hdmi.service | sed -n '1,220p' || true
+sudo_cmd systemctl --no-pager --plain status seatd.service sunshine-input-bridge.service hyprland-hdmi.service | sed -n '1,260p' || true
 
 echo "== runtime =="
 ls -l /run/seatd.sock /run/opengl-driver/lib/gbm/dri_gbm.so 2>/dev/null || true
 ls -la /run/user/1000/wayland-* 2>/dev/null || true
-pgrep -af 'Hyprland|caelestia|wayvnc|sunshine' || true
+pgrep -af 'Hyprland|caelestia|wayvnc|sunshine|sunshine-evdev-bridge' || true
 
 echo "== hyprland fd =="
 HPID="$(pidof Hyprland .Hyprland-wrapp 2>/dev/null | awk '{print $1}')"
@@ -315,7 +501,7 @@ else
 fi
 
 echo "== recent logs =="
-sudo_cmd journalctl -u seatd.service -u hyprland-hdmi.service -n 120 --no-pager || true
+sudo_cmd journalctl -u seatd.service -u sunshine-input-bridge.service -u hyprland-hdmi.service -n 160 --no-pager || true
 
 echo "== latest hyprland crash report =="
 latest_crash="$(ls -t "/home/$TARGET_USER/.cache/hyprland"/hyprlandCrashReport*.txt 2>/dev/null | head -n 1 || true)"

@@ -35,6 +35,9 @@ in
 {
   home.packages = with pkgs; [
     novnc
+    (python3.withPackages (pythonPackages: [
+      pythonPackages.evdev
+    ]))
     python3Packages.websockify
     wayvnc
   ];
