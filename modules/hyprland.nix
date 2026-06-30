@@ -11,9 +11,9 @@
       "$mod" = "SUPER";
 
       monitor = [
-        "HDMI-A-1,preferred,auto,1"
-        "HDMI-A-2,preferred,auto,1"
-        ",preferred,auto,1"
+        "HDMI-A-1,3840x2160@60,auto,1"
+        "HDMI-A-2,3840x2160@60,auto,1"
+        ",3840x2160@60,auto,1"
       ];
 
       exec-once = [
