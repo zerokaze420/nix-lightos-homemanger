@@ -164,6 +164,7 @@ echo "[target] installing system services"
 cat > /tmp/sunshine-evdev-bridge.py <<'PYEOF'
 #!/usr/bin/env python3
 import glob
+import os
 import select
 import time
 
@@ -172,6 +173,7 @@ from evdev import InputDevice, UInput, ecodes
 
 VIRTUAL_DEVICE_NAME = "LightOS Sunshine Input Bridge"
 SOURCE_PATTERNS = ("sunshine", "passthrough")
+MOUSE_MODE = os.environ.get("LIGHTOS_MOUSE_MODE", "auto")
 ABS_TO_REL = {
     ecodes.ABS_X: (ecodes.REL_X, 1920),
     ecodes.ABS_Y: (ecodes.REL_Y, 1080),
@@ -192,8 +194,12 @@ def source_kind(device):
     if "keyboard" in name:
         return "keyboard"
     if name == "mouse passthrough":
+        if MOUSE_MODE == "absolute":
+            return None
         return "mouse"
     if name == "mouse passthrough (absolute)":
+        if MOUSE_MODE == "relative":
+            return None
         return "mouse_absolute"
     return None
 
@@ -271,7 +277,9 @@ def forward_absolute(ui, device, event, state):
     except OSError:
         abs_span = 32767
 
-    delta = int(round((event.value - previous) * rel_span / abs_span))
+    scaled = ((event.value - previous) * rel_span / abs_span) + state["absolute_remainders"].get(event.code, 0.0)
+    delta = int(scaled)
+    state["absolute_remainders"][event.code] = scaled - delta
     if delta:
         ui.write(ecodes.EV_REL, rel_code, delta)
 
@@ -283,7 +291,7 @@ def forward_event(ui, device, kind, event, state):
     if event.type == ecodes.EV_ABS and kind == "mouse_absolute":
         forward_absolute(ui, device, event, state)
         return
-    if event.type == ecodes.EV_REL and kind == "mouse":
+    if event.type == ecodes.EV_REL and kind == "mouse" and event.code in (ecodes.REL_X, ecodes.REL_Y):
         state["last_relative_mouse"] = time.monotonic()
     if event.type in (ecodes.EV_KEY, ecodes.EV_REL, ecodes.EV_MSC):
         ui.write(event.type, event.code, event.value)
@@ -291,11 +299,12 @@ def forward_event(ui, device, kind, event, state):
 
 def main():
     ui = build_uinput()
-    log(f"created virtual input device: {VIRTUAL_DEVICE_NAME}")
+    log(f"created virtual input device: {VIRTUAL_DEVICE_NAME}; mouse mode: {MOUSE_MODE}")
     sources = {}
     state = {
         "last_relative_mouse": 0,
         "absolute_positions": {},
+        "absolute_remainders": {},
     }
     last_refresh = 0
 
@@ -359,6 +368,7 @@ Before=hyprland-hdmi.service
 
 [Service]
 Type=simple
+Environment=LIGHTOS_MOUSE_MODE=absolute
 ExecStart=/home/$TARGET_USER/.nix-profile/bin/python3 /opt/lightos/sunshine-evdev-bridge.py
 Restart=always
 RestartSec=1
