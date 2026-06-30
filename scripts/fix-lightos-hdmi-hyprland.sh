@@ -168,16 +168,14 @@ import os
 import select
 import time
 
-from evdev import InputDevice, UInput, ecodes
+from evdev import AbsInfo, InputDevice, UInput, ecodes
 
 
 VIRTUAL_DEVICE_NAME = "LightOS Sunshine Input Bridge"
 SOURCE_PATTERNS = ("sunshine", "passthrough")
 MOUSE_MODE = os.environ.get("LIGHTOS_MOUSE_MODE", "auto")
-ABS_TO_REL = {
-    ecodes.ABS_X: (ecodes.REL_X, 1920),
-    ecodes.ABS_Y: (ecodes.REL_Y, 1080),
-}
+ABS_RANGE = 65535
+ABS_AXES = (ecodes.ABS_X, ecodes.ABS_Y)
 REL_ACTIVE_WINDOW_SECONDS = 0.25
 
 
@@ -195,7 +193,7 @@ def source_kind(device):
         return "keyboard"
     if name == "mouse passthrough":
         if MOUSE_MODE == "absolute":
-            return None
+            return "mouse_aux"
         return "mouse"
     if name == "mouse passthrough (absolute)":
         if MOUSE_MODE == "relative":
@@ -222,18 +220,30 @@ def build_uinput():
         ecodes.BTN_BACK,
         ecodes.BTN_TASK,
     ])
-    capabilities = {
-        ecodes.EV_KEY: sorted(set(key_codes)),
-        ecodes.EV_REL: [
+    rel_codes = [
+        ecodes.REL_WHEEL,
+        ecodes.REL_HWHEEL,
+        ecodes.REL_WHEEL_HI_RES,
+        ecodes.REL_HWHEEL_HI_RES,
+    ]
+    if MOUSE_MODE != "absolute":
+        rel_codes = [
             ecodes.REL_X,
             ecodes.REL_Y,
-            ecodes.REL_WHEEL,
-            ecodes.REL_HWHEEL,
-            ecodes.REL_WHEEL_HI_RES,
-            ecodes.REL_HWHEEL_HI_RES,
-        ],
+            *rel_codes,
+        ]
+
+    capabilities = {
+        ecodes.EV_KEY: sorted(set(key_codes)),
+        ecodes.EV_REL: rel_codes,
         ecodes.EV_MSC: [ecodes.MSC_SCAN],
     }
+    if MOUSE_MODE != "relative":
+        abs_info = AbsInfo(value=0, min=0, max=ABS_RANGE, fuzz=0, flat=0, resolution=100)
+        capabilities[ecodes.EV_ABS] = [
+            (ecodes.ABS_X, abs_info),
+            (ecodes.ABS_Y, abs_info),
+        ]
     return UInput(capabilities, name=VIRTUAL_DEVICE_NAME, bustype=ecodes.BUS_USB)
 
 
@@ -258,30 +268,20 @@ def open_sources(existing):
 
 
 def forward_absolute(ui, device, event, state):
-    if event.code not in ABS_TO_REL:
+    if event.code not in ABS_AXES:
         return
     now = time.monotonic()
     if now - state["last_relative_mouse"] < REL_ACTIVE_WINDOW_SECONDS:
         return
 
-    rel_code, rel_span = ABS_TO_REL[event.code]
-    state_key = (device.path, event.code)
-    previous = state["absolute_positions"].get(state_key)
-    state["absolute_positions"][state_key] = event.value
-    if previous is None:
-        return
-
     try:
         info = device.absinfo(event.code)
         abs_span = max(1, info.max - info.min)
+        value = int(round((event.value - info.min) * ABS_RANGE / abs_span))
     except OSError:
-        abs_span = 32767
+        value = event.value
 
-    scaled = ((event.value - previous) * rel_span / abs_span) + state["absolute_remainders"].get(event.code, 0.0)
-    delta = int(scaled)
-    state["absolute_remainders"][event.code] = scaled - delta
-    if delta:
-        ui.write(ecodes.EV_REL, rel_code, delta)
+    ui.write(ecodes.EV_ABS, event.code, max(0, min(ABS_RANGE, value)))
 
 
 def forward_event(ui, device, kind, event, state):
@@ -293,6 +293,8 @@ def forward_event(ui, device, kind, event, state):
         return
     if event.type == ecodes.EV_REL and kind == "mouse" and event.code in (ecodes.REL_X, ecodes.REL_Y):
         state["last_relative_mouse"] = time.monotonic()
+    if kind == "mouse_aux" and event.type == ecodes.EV_REL and event.code in (ecodes.REL_X, ecodes.REL_Y):
+        return
     if event.type in (ecodes.EV_KEY, ecodes.EV_REL, ecodes.EV_MSC):
         ui.write(event.type, event.code, event.value)
 
@@ -303,8 +305,6 @@ def main():
     sources = {}
     state = {
         "last_relative_mouse": 0,
-        "absolute_positions": {},
-        "absolute_remainders": {},
     }
     last_refresh = 0
 
@@ -329,11 +329,6 @@ def main():
             except OSError:
                 log(f"lost {device.path} ({device.name})")
                 sources.pop(device.path, None)
-                state["absolute_positions"] = {
-                    key: value
-                    for key, value in state["absolute_positions"].items()
-                    if key[0] != device.path
-                }
                 try:
                     device.close()
                 except OSError:
