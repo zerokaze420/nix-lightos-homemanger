@@ -150,6 +150,18 @@ Super + Space      当前窗口切换浮动
 bash scripts/fix-lightos-hdmi-hyprland.sh
 ```
 
+日常只想一键重启 HDMI 桌面时，使用更短的入口：
+
+```sh
+bash scripts/restart-lightos-desktop.sh
+```
+
+只查看远端服务和键鼠状态：
+
+```sh
+bash scripts/restart-lightos-desktop.sh --status
+```
+
 脚本默认部署到：
 
 ```text
