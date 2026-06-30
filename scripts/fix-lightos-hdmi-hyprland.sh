@@ -395,6 +395,7 @@ Environment=PATH=/home/$TARGET_USER/.nix-profile/bin:/nix/var/nix/profiles/defau
 Environment=XDG_DATA_DIRS=/home/$TARGET_USER/.nix-profile/share:/nix/var/nix/profiles/default/share:/usr/local/share:/usr/share
 Environment=XDG_CONFIG_DIRS=/home/$TARGET_USER/.nix-profile/etc/xdg:/nix/var/nix/profiles/default/etc/xdg:/etc/xdg
 Environment=FONTCONFIG_FILE=$FONTCONFIG_FILE
+Environment=GTK_THEME=Adwaita:dark
 Environment=XDG_SESSION_TYPE=wayland
 Environment=XDG_CURRENT_DESKTOP=Hyprland
 Environment=XDG_SESSION_DESKTOP=Hyprland
@@ -490,6 +491,7 @@ if ! pgrep -af 'caelestia|quickshell' >/dev/null 2>&1; then
       XDG_DATA_DIRS="/home/$TARGET_USER/.nix-profile/share:/nix/var/nix/profiles/default/share:/usr/local/share:/usr/share" \
       XDG_CONFIG_DIRS="/home/$TARGET_USER/.nix-profile/etc/xdg:/nix/var/nix/profiles/default/etc/xdg:/etc/xdg" \
       FONTCONFIG_FILE="$FONTCONFIG_FILE" \
+      GTK_THEME=Adwaita:dark \
       XDG_RUNTIME_DIR=/run/user/1000 \
       WAYLAND_DISPLAY=wayland-1 \
       HYPRLAND_INSTANCE_SIGNATURE="$H" \
