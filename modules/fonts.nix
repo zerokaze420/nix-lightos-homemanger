@@ -21,13 +21,13 @@
   programs.kitty = {
     enable = true;
     font = {
-      name = "Aporetic Serif Mono";
+      name = "Iosevka";
       size = 12;
     };
     settings = {
-      bold_font = "auto";
-      italic_font = "auto";
-      bold_italic_font = "auto";
+      bold_font = "Iosevka Bold";
+      italic_font = "Iosevka Italic";
+      bold_italic_font = "Iosevka Bold Italic";
       confirm_os_window_close = 0;
       cursor_shape = "beam";
       enable_audio_bell = false;
@@ -40,6 +40,7 @@
 
   home.packages = with pkgs; [
     aporetic-bin
+    iosevka
     fontconfig
   ];
 }

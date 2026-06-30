@@ -18,6 +18,10 @@
 
     settings = {
       bar.status.showBattery = false;
+      general.idle = {
+        lockBeforeSleep = false;
+        timeouts = [ ];
+      };
     };
   };
 

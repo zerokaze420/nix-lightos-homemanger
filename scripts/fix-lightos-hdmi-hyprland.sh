@@ -63,7 +63,36 @@ MESA_LIB_DIR="$(dirname "$(find_one '*/lib/libEGL_mesa.so')")"
 GLVND_LIB_DIR="$(dirname "$(find_one '*/lib/libEGL.so.1')")"
 GBM_LIB_DIR="$(dirname "$(find_one '*/lib/libgbm.so.1')")"
 EGL_VENDOR_JSON="$(find_one '*/share/glvnd/egl_vendor.d/50_mesa.json')"
-FONTCONFIG_FILE="$(find_one '*/etc/fonts/fonts.conf')"
+FONTCONFIG_FILE=""
+for candidate in \
+  "/nix/var/nix/profiles/default/etc/fonts/fonts.conf" \
+  "/home/$TARGET_USER/.nix-profile/etc/fonts/fonts.conf"
+do
+  if [[ -e "$candidate" ]]; then
+    FONTCONFIG_FILE="$candidate"
+    break
+  fi
+done
+if [[ -z "$FONTCONFIG_FILE" ]]; then
+  FONTCONFIG_FILE="$(find_one '*/etc/fonts/fonts.conf')"
+fi
+LIGHTOS_FONTCONFIG_FILE="/tmp/lightos-fonts.conf"
+LIGHTOS_FONTCONFIG_CACHE="/tmp/fontconfig-cache-$TARGET_USER"
+install -d -m 0700 "$LIGHTOS_FONTCONFIG_CACHE"
+cat > "$LIGHTOS_FONTCONFIG_FILE" <<EOF
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <dir>/home/$TARGET_USER/.nix-profile/share/fonts</dir>
+  <dir>/nix/var/nix/profiles/default/share/fonts</dir>
+  <dir>/usr/local/share/fonts</dir>
+  <dir>/usr/share/fonts</dir>
+  <cachedir>$LIGHTOS_FONTCONFIG_CACHE</cachedir>
+  <include ignore_missing="yes">/home/$TARGET_USER/.config/fontconfig/conf.d</include>
+  <include ignore_missing="yes">/etc/fonts/conf.d</include>
+</fontconfig>
+EOF
+FONTCONFIG_FILE="$LIGHTOS_FONTCONFIG_FILE"
 
 if [[ -z "$MESA_GBM" || ! -e "$MESA_GBM" ]]; then
   echo "could not find Mesa GBM driver in /nix/store" >&2

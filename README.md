@@ -100,7 +100,7 @@ serif:     Aporetic Serif
 sans:      Aporetic Sans
 ```
 
-`foot` 终端显式使用 `Aporetic Serif Mono:size=12`。LightOS HDMI 脚本会自动查找 Nix store 里的 `fontconfig` 默认 `fonts.conf` 并写入系统服务，避免 Hyprland/Caelestia 在非标准登录环境里找不到 fontconfig 默认配置。
+`foot` 终端显式使用 `Aporetic Serif Mono:size=12`。`kitty` 终端使用 `Iosevka`、`Iosevka Bold`、`Iosevka Italic` 和 `Iosevka Bold Italic`。LightOS HDMI 脚本会自动查找 Nix store 里的 `fontconfig` 默认 `fonts.conf` 并写入系统服务，避免 Hyprland/Caelestia 在非标准登录环境里找不到 fontconfig 默认配置。
 
 ## mirrors
 
@@ -139,6 +139,8 @@ Super + Shift + Q  退出 Hyprland
 Super + F          当前窗口全屏
 Super + Space      当前窗口切换浮动
 ```
+
+当前已禁用 Caelestia 的 idle timeouts，避免空闲后自动锁屏/休眠导致 LightOS 容器里解锁认证异常。
 
 无显示管理器时，此配置会在 fish 登录 shell 的 TTY1 登录后自动 `exec Hyprland`。LightOS 容器里不建议依赖 TTY 登录路径，优先使用仓库脚本创建系统级 HDMI 会话。
 
