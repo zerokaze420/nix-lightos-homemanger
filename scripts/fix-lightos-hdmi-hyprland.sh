@@ -172,10 +172,6 @@ from evdev import InputDevice, UInput, ecodes
 
 VIRTUAL_DEVICE_NAME = "LightOS Sunshine Input Bridge"
 SOURCE_PATTERNS = ("sunshine", "passthrough")
-ABS_TO_REL = {
-    ecodes.ABS_X: (ecodes.REL_X, 1920),
-    ecodes.ABS_Y: (ecodes.REL_Y, 1080),
-}
 
 
 def log(message):
@@ -190,9 +186,9 @@ def source_kind(device):
         return None
     if "keyboard" in name:
         return "keyboard"
-    if "mouse" in name:
+    if name == "mouse passthrough":
         return "mouse"
-    return "other"
+    return None
 
 
 def build_uinput():
@@ -248,33 +244,9 @@ def open_sources(existing):
         log(f"tracking {path} ({device.name}) as {kind}")
 
 
-def abs_to_rel(ui, device, event, abs_state):
-    if event.code not in ABS_TO_REL:
-        return
-    rel_code, rel_span = ABS_TO_REL[event.code]
-    state_key = (device.path, event.code)
-    previous = abs_state.get(state_key)
-    abs_state[state_key] = event.value
-    if previous is None:
-        return
-
-    try:
-        info = device.absinfo(event.code)
-        abs_span = max(1, info.max - info.min)
-    except OSError:
-        abs_span = 32767
-
-    delta = int(round((event.value - previous) * rel_span / abs_span))
-    if delta:
-        ui.write(ecodes.EV_REL, rel_code, delta)
-
-
-def forward_event(ui, device, event, abs_state):
+def forward_event(ui, event):
     if event.type == ecodes.EV_SYN:
         ui.syn()
-        return
-    if event.type == ecodes.EV_ABS:
-        abs_to_rel(ui, device, event, abs_state)
         return
     if event.type in (ecodes.EV_KEY, ecodes.EV_REL, ecodes.EV_MSC):
         ui.write(event.type, event.code, event.value)
@@ -284,7 +256,6 @@ def main():
     ui = build_uinput()
     log(f"created virtual input device: {VIRTUAL_DEVICE_NAME}")
     sources = {}
-    abs_state = {}
     last_refresh = 0
 
     while True:
@@ -303,15 +274,10 @@ def main():
             device = fds[fd]
             try:
                 for event in device.read():
-                    forward_event(ui, device, event, abs_state)
+                    forward_event(ui, event)
             except OSError:
                 log(f"lost {device.path} ({device.name})")
                 sources.pop(device.path, None)
-                abs_state = {
-                    key: value
-                    for key, value in abs_state.items()
-                    if key[0] != device.path
-                }
                 try:
                     device.close()
                 except OSError:
